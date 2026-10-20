@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kickstream — working, scalable architecture</title>
+  <style>
+    :root {
+      --ink: #242424;
+      --muted: #616161;
+      --line: #e1dfdd;
+      --page: #f5f5f5;
+      --card: #ffffff;
+      --blue: #0078d4;
+      --blue-soft: #eff6fc;
+      --purple: #5c2d91;
+      --purple-soft: #f6f1fb;
+      --teal: #038387;
+      --teal-soft: #e8f6f6;
+      --green: #0b6a0b;
+      --green-soft: #eef6ee;
+      --amber: #8a6914;
+      --amber-soft: #fff8e6;
+      --font: "Segoe UI Variable", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: var(--font);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+    }
+    .bar {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: baseline;
+    }
+    .brand { font-weight: 650; letter-spacing: -0.01em; }
+    .brand span { color: var(--blue); }
+    a { color: var(--blue); }
+    main { max-width: 1180px; margin: 0 auto; padding: 28px 24px 64px; }
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.02em; }
+    h2 { font-size: 22px; margin: 36px 0 8px; }
+    .lead { font-size: 18px; max-width: 760px; margin: 0 0 8px; }
+    .quiet { color: var(--muted); margin: 0 0 20px; }
+    figure {
+      margin: 16px 0 8px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+    }
+    figcaption { color: var(--muted); font-size: 13px; padding: 8px 8px 4px; }
+    svg { display: block; width: 100%; height: auto; }
+    .n { fill: var(--blue-soft); stroke: var(--blue); }
+    .p { fill: var(--purple-soft); stroke: var(--purple); }
+    .t { fill: var(--teal-soft); stroke: var(--teal); }
+    .g { fill: var(--green-soft); stroke: var(--green); }
+    .a { fill: var(--amber-soft); stroke: var(--amber); }
+    .zone { fill: #faf9f8; stroke: #d2d0ce; }
+    .title { font: 600 15px var(--font); fill: var(--ink); }
+    .sub { font: 12px var(--font); fill: var(--muted); }
+    .zone-label { font: 600 12px var(--font); fill: var(--muted); letter-spacing: 0.04em; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: #faf9f8; font-size: 13px; }
+    tr:last-child td { border-bottom: 0; }
+    .callout {
+      background: var(--amber-soft);
+      border: 1px solid #f3e2a4;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 16px;
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+    .card h3 { margin: 0 0 4px; font-size: 16px; }
+    .card p { margin: 0; color: var(--muted); }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } h1 { font-size: 26px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="brand"><span>Kickstream</span> · scalable architecture</div>
+      <a href="../solution/architecture.html">What ships today</a>
+    </div>
+  </header>
+  <main>
+    <p class="quiet">Target shape of the product that already runs locally and as one Azure Container App.</p>
+    <h1>One match owner. One encode. Viewers scale apart.</h1>
+    <p class="lead">A live show cannot be split across copies: the match clock and the ffmpeg process each need a single owner. Viewers, hosts, narration, and the next show do not. This is that split, using the same pipeline the app already runs.</p>
+    <p class="quiet">Locally the four workers are one FastAPI process on port 8000 and the Vite app on port 5173. The current Terraform deploy is the same process, with <code>max_replicas = 1</code>. This page is the shape to grow into. It is not what <code>deploy/terraform</code> creates today.</p>
+
+    <figure>
+      <svg viewBox="0 0 1144 760" role="img" aria-label="Scalable Kickstream runtime, from people through four workers to data and destinations">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0 0 L7 3 L0 6 Z" fill="#0078D4"/>
+          </marker>
+        </defs>
+
+        <rect class="zone" x="16" y="168" width="1112" height="300" rx="8"/>
+        <text class="zone-label" x="32" y="188">COMPUTE · CONTAINER APPS</text>
+
+        <rect class="n" x="32" y="16" width="250" height="72" rx="6"/>
+        <text class="title" x="157" y="42" text-anchor="middle">Viewers</text>
+        <text class="sub" x="157" y="62" text-anchor="middle">/live and /match · read only</text>
+
+        <rect class="n" x="306" y="16" width="250" height="72" rx="6"/>
+        <text class="title" x="431" y="42" text-anchor="middle">Hosts</text>
+        <text class="sub" x="431" y="62" text-anchor="middle">Entra studio · MCP clients</text>
+
+        <rect class="a" x="580" y="16" width="250" height="72" rx="6"/>
+        <text class="title" x="705" y="42" text-anchor="middle">Match sources</text>
+        <text class="sub" x="705" y="62" text-anchor="middle">Sim · detector · live feeds</text>
+
+        <rect class="n" x="854" y="16" width="250" height="72" rx="6"/>
+        <text class="title" x="979" y="42" text-anchor="middle">Guests</text>
+        <text class="sub" x="979" y="62" text-anchor="middle">Invite link · ACS audio</text>
+
+        <rect class="a" x="32" y="112" width="524" height="64" rx="6"/>
+        <text class="title" x="294" y="138" text-anchor="middle">Front Door and Entra</text>
+        <text class="sub" x="294" y="158" text-anchor="middle">Studio signs in. Public pages only read.</text>
+
+        <rect class="n" x="32" y="208" width="250" height="118" rx="6"/>
+        <text class="title" x="157" y="242" text-anchor="middle">Viewer gateway</text>
+        <text class="sub" x="157" y="266" text-anchor="middle">Scales with viewers</text>
+        <text class="sub" x="157" y="286" text-anchor="middle">SSE and WebSocket</text>
+        <text class="sub" x="157" y="306" text-anchor="middle">Mode, language, favourite</text>
+
+        <rect class="p" x="306" y="208" width="250" height="118" rx="6"/>
+        <text class="title" x="431" y="242" text-anchor="middle">Studio API</text>
+        <text class="sub" x="431" y="266" text-anchor="middle">Scales with hosts</text>
+        <text class="sub" x="431" y="286" text-anchor="middle">Scenes, go live, /mcp</text>
+        <text class="sub" x="431" y="306" text-anchor="middle">Writes state. Does not encode.</text>
+
+        <rect class="p" x="580" y="208" width="250" height="118" rx="6"/>
+        <text class="title" x="705" y="242" text-anchor="middle">Match worker</text>
+        <text class="sub" x="705" y="266" text-anchor="middle">One lease per match</text>
+        <text class="sub" x="705" y="286" text-anchor="middle">Ingest, analytics, 7 agents</text>
+        <text class="sub" x="705" y="306" text-anchor="middle">Publishes the live log</text>
+
+        <rect class="a" x="854" y="208" width="250" height="118" rx="6"/>
+        <text class="title" x="979" y="242" text-anchor="middle">Encode worker</text>
+        <text class="sub" x="979" y="266" text-anchor="middle">One ffmpeg per live show</text>
+        <text class="sub" x="979" y="286" text-anchor="middle">Chromium 1920×1080</text>
+        <text class="sub" x="979" y="306" text-anchor="middle">2 vCPU · 4 GiB · Speech</text>
+
+        <rect class="t" x="32" y="360" width="250" height="92" rx="6"/>
+        <text class="title" x="157" y="394" text-anchor="middle">Web PubSub</text>
+        <text class="sub" x="157" y="416" text-anchor="middle">Live fan-out</text>
+        <text class="sub" x="157" y="434" text-anchor="middle">Gateway only reads</text>
+
+        <rect class="t" x="306" y="360" width="250" height="92" rx="6"/>
+        <text class="title" x="431" y="394" text-anchor="middle">Cosmos, Blob, Key Vault</text>
+        <text class="sub" x="431" y="416" text-anchor="middle">match_log on /match_id</text>
+        <text class="sub" x="431" y="434" text-anchor="middle">Media, leases, secrets</text>
+
+        <rect class="p" x="580" y="360" width="250" height="92" rx="6"/>
+        <text class="title" x="705" y="394" text-anchor="middle">Foundry narration</text>
+        <text class="sub" x="705" y="416" text-anchor="middle">Four writers, then cache</text>
+        <text class="sub" x="705" y="434" text-anchor="middle">Template if the model fails</text>
+
+        <rect class="g" x="854" y="360" width="250" height="92" rx="6"/>
+        <text class="title" x="979" y="394" text-anchor="middle">YouTube · X</text>
+        <text class="sub" x="979" y="416" text-anchor="middle">Facebook · Twitch</text>
+        <text class="sub" x="979" y="434" text-anchor="middle">One copy. One failure stays put.</text>
+
+        <path d="M157 88 V112" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M431 88 V112" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M157 176 V208" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M431 176 V208" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M705 88 V208" stroke="#8a6914" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M979 88 V208" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M157 360 V326" stroke="#038387" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M431 326 V360" stroke="#5c2d91" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M705 326 V360" stroke="#5c2d91" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M979 326 V360" stroke="#0b6a0b" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M556 268 H580" stroke="#5c2d91" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+        <path d="M830 300 H854" stroke="#8a6914" stroke-width="1.6" fill="none" marker-end="url(#arr)"/>
+
+        <text class="sub" x="705" y="156" text-anchor="middle">events</text>
+        <text class="sub" x="979" y="156" text-anchor="middle">audio</text>
+        <text class="sub" x="568" y="258" text-anchor="middle">lease</text>
+        <text class="sub" x="842" y="290" text-anchor="middle">go live</text>
+
+        <rect class="a" x="32" y="492" width="1080" height="88" rx="6"/>
+        <text class="title" x="48" y="522">Same product, three ways of running it</text>
+        <text class="sub" x="48" y="546">Local: Vite on :5173 and one pipeline on :8000. Files in .data/. Cosmos only if configured.</text>
+        <text class="sub" x="48" y="564">Azure today: one Container App, 2 vCPU, 4 GiB, max 1 replica. Files share, Cosmos match log, Speech, ACS, Entra.</text>
+
+        <rect class="zone" x="32" y="608" width="1080" height="128" rx="6"/>
+        <text class="zone-label" x="48" y="632">HOW A SHOW SCALES</text>
+        <text class="title" x="48" y="660">Viewers add gateway replicas. Matches add workers. Live shows add encode workers.</text>
+        <text class="sub" x="48" y="684">Narration is written once per mode and language, then sent to every viewer on that variant. Audience size does not add model calls.</text>
+        <text class="sub" x="48" y="706">A second gateway does not own the match. A second encode worker does not share another show’s ffmpeg. Leases live in Cosmos, partitioned by match_id.</text>
+      </svg>
+      <figcaption>Blue is entry and read path. Purple is ownership and writing. Amber is sources, edge policy, and the encode. Teal is stored or fanned-out state. Green is the platforms.</figcaption>
+    </figure>
+
+    <h2>Inside one match</h2>
+    <p class="quiet">The match worker is the pipeline that already runs in <code>services/pipeline</code>. Scaling adds workers. It does not change the stages.</p>
+    <figure>
+      <svg viewBox="0 0 1144 250" role="img" aria-label="Match pipeline from sources through five stages, with agents and Foundry beside it">
+        <defs>
+          <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0 0 L7 3 L0 6 Z" fill="#0078D4"/>
+          </marker>
+        </defs>
+        <rect class="a" x="16" y="16" width="150" height="64" rx="6"/>
+        <text class="title" x="91" y="42" text-anchor="middle">Ingest</text>
+        <text class="sub" x="91" y="62" text-anchor="middle">events in</text>
+
+        <rect class="n" x="198" y="16" width="150" height="64" rx="6"/>
+        <text class="title" x="273" y="42" text-anchor="middle">Interpret</text>
+        <text class="sub" x="273" y="62" text-anchor="middle">stats, pressure</text>
+
+        <rect class="n" x="380" y="16" width="150" height="64" rx="6"/>
+        <text class="title" x="455" y="42" text-anchor="middle">Explain</text>
+        <text class="sub" x="455" y="62" text-anchor="middle">Fan and Analyst</text>
+
+        <rect class="n" x="562" y="16" width="150" height="64" rx="6"/>
+        <text class="title" x="637" y="42" text-anchor="middle">Render</text>
+        <text class="sub" x="637" y="62" text-anchor="middle">overlay, scenes</text>
+
+        <rect class="p" x="744" y="16" width="170" height="64" rx="6"/>
+        <text class="title" x="829" y="42" text-anchor="middle">Personalize</text>
+        <text class="sub" x="829" y="62" text-anchor="middle">mode, language</text>
+
+        <rect class="t" x="946" y="16" width="180" height="64" rx="6"/>
+        <text class="title" x="1036" y="42" text-anchor="middle">Web PubSub</text>
+        <text class="sub" x="1036" y="62" text-anchor="middle">late joiners too</text>
+
+        <path d="M166 48 H198" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr2)"/>
+        <path d="M348 48 H380" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr2)"/>
+        <path d="M530 48 H562" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr2)"/>
+        <path d="M712 48 H744" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr2)"/>
+        <path d="M914 48 H946" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr2)"/>
+
+        <rect class="p" x="198" y="112" width="514" height="112" rx="6"/>
+        <text class="title" x="455" y="140" text-anchor="middle">Seven match agents</text>
+        <text class="sub" x="455" y="164" text-anchor="middle">Interpreter · Tactics · Prediction · Explainability</text>
+        <text class="sub" x="455" y="184" text-anchor="middle">Visualization · Player tracking · Highlights</text>
+        <text class="sub" x="455" y="204" text-anchor="middle">They compute facts. Only Explainability writes prose.</text>
+
+        <rect class="a" x="744" y="112" width="382" height="112" rx="6"/>
+        <text class="title" x="935" y="140" text-anchor="middle">Foundry, one shared client</text>
+        <text class="sub" x="935" y="164" text-anchor="middle">Commentator and Tactical Analyst on a key moment</text>
+        <text class="sub" x="935" y="184" text-anchor="middle">Recap at half and full time · Localizer to es and hi</text>
+        <text class="sub" x="935" y="204" text-anchor="middle">Cached. Capped per match. Scripted on failure.</text>
+
+        <path d="M455 80 V112" stroke="#5c2d91" stroke-width="1.6" fill="none" marker-end="url(#arr2)"/>
+        <path d="M637 80 V130 H712" stroke="#5c2d91" stroke-width="1.6" fill="none" marker-end="url(#arr2)"/>
+      </svg>
+      <figcaption>A late joiner gets the newest pitch scene and the newest player report, not the whole history. Ask Copilot’s MCP tools read these facts and do not call the model.</figcaption>
+    </figure>
+
+    <h2>Inside one live show</h2>
+    <p class="quiet">Going live does not upload a file per platform. The encode worker opens the clean program, encodes once, and copies that stream.</p>
+    <figure>
+      <svg viewBox="0 0 1144 168" role="img" aria-label="One Chromium capture and one ffmpeg encode copied to four platforms and a recording">
+        <defs>
+          <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0 0 L7 3 L0 6 Z" fill="#0078D4"/>
+          </marker>
+        </defs>
+        <rect class="n" x="16" y="16" width="180" height="64" rx="6"/>
+        <text class="title" x="106" y="42" text-anchor="middle">Program page</text>
+        <text class="sub" x="106" y="62" text-anchor="middle">/studio or /live</text>
+
+        <rect class="a" x="228" y="16" width="180" height="64" rx="6"/>
+        <text class="title" x="318" y="42" text-anchor="middle">Chromium</text>
+        <text class="sub" x="318" y="62" text-anchor="middle">1920×1080, hidden</text>
+
+        <rect class="a" x="440" y="16" width="200" height="64" rx="6"/>
+        <text class="title" x="540" y="42" text-anchor="middle">ffmpeg, once</text>
+        <text class="sub" x="540" y="62" text-anchor="middle">Speech and guest audio</text>
+
+        <rect class="g" x="672" y="16" width="456" height="64" rx="6"/>
+        <text class="title" x="900" y="42" text-anchor="middle">YouTube · X · Facebook · Twitch</text>
+        <text class="sub" x="900" y="62" text-anchor="middle">Plus a recording in Blob. One failure does not stop the rest.</text>
+
+        <path d="M196 48 H228" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr3)"/>
+        <path d="M408 48 H440" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr3)"/>
+        <path d="M640 48 H672" stroke="#0078D4" stroke-width="1.6" fill="none" marker-end="url(#arr3)"/>
+
+        <rect class="t" x="228" y="100" width="412" height="52" rx="6"/>
+        <text class="title" x="434" y="122" text-anchor="middle">After the show</text>
+        <text class="sub" x="434" y="140" text-anchor="middle">Reels at 15 seconds. Clipchamp edit comes back as a second MP4.</text>
+      </svg>
+      <figcaption>Auto live captures <code>/live?output</code> the same way. Only Azure speech is heard on the stream. A browser voice is silence on air. Stream 24/7 retries the platform copy. It should not record to disk for days.</figcaption>
+    </figure>
+
+    <h2>What is allowed to multiply</h2>
+    <table>
+      <thead>
+        <tr><th>Piece</th><th>Scales with</th><th>Rule that keeps it correct</th><th>Today</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Viewer gateway</td><td>People watching</td><td>No match clock and no ffmpeg in this process</td><td>Inside the one process</td></tr>
+        <tr><td>Studio API</td><td>Hosts and MCP clients</td><td>State is Cosmos, Blob, and Key Vault, not RAM</td><td>Inside the one process</td></tr>
+        <tr><td>Match worker</td><td>Concurrent matches</td><td>One lease per <code>match_id</code>. A second worker does not take a live lease.</td><td>Memory of the single replica</td></tr>
+        <tr><td>Encode worker</td><td>Concurrent live shows</td><td>One Chromium and one ffmpeg per show. 2 vCPU, 4 GiB.</td><td>Same replica, same 2 vCPU</td></tr>
+        <tr><td>Foundry narration</td><td>Key moments, not viewers</td><td>One write per mode and language, then cache. Cap per match.</td><td>Same process, same cache</td></tr>
+        <tr><td>Cosmos <code>match_log</code></td><td>Matches stored</td><td>Partition <code>/match_id</code>. TTL default 90 days. Session consistency.</td><td>Already deployed this way</td></tr>
+        <tr><td>Platforms</td><td>Destinations on one show</td><td>ffmpeg copies one encode. A failed destination is marked and the others continue.</td><td>Already works this way</td></tr>
+      </tbody>
+    </table>
+
+    <h2>What stays single-owner</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>The match clock</h3>
+        <p>Score, minute, agents, and the live log have one writer. The lease is the lock. Restarting that worker resumes from Cosmos. It does not fork the match.</p>
+      </div>
+      <div class="card">
+        <h3>The encode</h3>
+        <p>One hidden browser and one ffmpeg per broadcast. A restart drops that encode. Auto live can start its 24/7 stream again from saved settings. A studio show does not resume mid-encode by itself.</p>
+      </div>
+      <div class="card">
+        <h3>The region</h3>
+        <p>First scale-out stays in centralindia, the region the deploy uses now. Cosmos is one geo location. There is no second-region failover in this design.</p>
+      </div>
+      <div class="card">
+        <h3>The model budget</h3>
+        <p>Explainability stays at most 20 prose items a match. Ask Copilot stays at most 40 worded answers. MCP tools stay read-only and do not call a model or the web.</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <strong>Not the Marketplace, and not StatsBomb in a paid offer.</strong>
+      StatsBomb Open Data is non-commercial and stays off a paid deployment unless someone deliberately turns real sources on for a local, attributed use. This design does not add SaaS fulfillment, a purchase landing page, or a Partner Center offer. Foundry is an existing project the workers sign in to with a managed identity. Terraform does not create it.
+    </div>
+  </main>
+</body>
+</html>
