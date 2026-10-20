@@ -164,7 +164,7 @@ function Caption({ text, speaking }: { text: string | null; speaking: boolean })
           }} />
         ))}
       </span>
-      <span style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{text}</span>
+      <span dir="auto" style={{ display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{text}</span>
     </div>
   );
 }

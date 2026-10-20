@@ -79,7 +79,7 @@ def test_scenes_can_be_created_edited_activated_and_deleted(client):
         400,
         1080 - edited["elements"][0]["height"],
     )
-    assert edited["mode"] == "fan", "an edit that does not mention the mode keeps it"
+    assert edited["mode"] is None, "an edit that does not mention the mode keeps it"
 
     doc = client.put(f"/api/studio/scenes/{made['id']}/mode", json={"mode": "analyst"}).json()
     assert doc["scenes"][-1]["mode"] == "analyst"

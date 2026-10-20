@@ -161,10 +161,20 @@ Three things to know:
 
 Any agent can be switched off on its page; the agents that listen to it then have less to work on. The switches are kept in `.data/agents.json`.
 
+Each agent's page also has, for the studio's users:
+
+- **Custom instructions**: your own instructions for that agent, up to 2,000 characters. A model follows them, after its own rules, whenever it writes as that agent: the agent's chat answers, and the Explainability Agent's explanations. What the agents compute from the match does not change, and without a model the instructions wait until one is set up.
+- **Connectors**: up to three services of your own per agent, such as your data, odds or a knowledge base. When the agent is asked a question, Kickstream POSTs `{"question", "agent", "agent_name", "match_id", "source": "kickstream"}` as JSON to each one that is on, waits up to 10 seconds, and reads the answer from a JSON `answer`, `text`, `result`, `summary`, `content`, `message` or `data` field, or the plain text. Answers are cited as **Connector** sources and given to the model as facts, never as instructions; one that fails is named in the answer and the rest still answer. A key is sent in the header you name, or as a bearer token, and is kept in the owner-only `.data/agent-secrets.json`, never shown again. **Test** sends a sample question. Connectors are asked at most 120 times a match, and redirects are not followed. Addresses are visible to anyone who can read `/api/agents`, so put a key in the key field, never in the address.
+- **Chat**: a conversation with that agent, answered from its part of the match and its connectors. Anyone who can open `/match` can chat; only the studio's users can change instructions and connectors.
+
 | Endpoint | Use |
 |---|---|
 | `GET /api/agents` | The catalogue: each agent's instructions, triggers, tools, outputs, connections and whether it is on |
 | `PUT /api/agents/{id}` | `{enabled}`: switch one on or off |
+| `PUT /api/agents/{id}/instructions` | `{custom_instructions}`: the agent's own instructions; `""` clears them |
+| `POST /api/agents/{id}/connectors` | `{name, url, description?, header?, secret?, enabled?}`: add a connector |
+| `PUT`, `DELETE /api/agents/{id}/connectors/{connector}` | Change or remove one; on a change, leave `secret` out to keep the saved key, or send `""` to remove it |
+| `POST /api/agents/{id}/connectors/{connector}/check` | Ask it a sample question: whether it answered, its status, the answer and how long it took |
 | `GET /api/matches/{id}/intelligence` | The latest output of every agent in one document; `?mode=analyst` for the analyst wording, `?player=` for the tracked player |
 | `GET /api/matches/{id}/stream`, `/socket` | The match stream, which also carries `play`, `tactics`, `prediction`, `explanation`, `pitch_scene`, `players`, `highlight` and `agent_run`. A page that joins late is replayed only the newest pitch scene and player report |
 
@@ -191,7 +201,7 @@ The **Ask Copilot** button in the top bar of every streamer page opens a chat pa
 | Endpoint | Use |
 |---|---|
 | `GET /api/copilot` | Whether a model words the answers, which search service is used, and how many matches are on record |
-| `POST /api/copilot/ask` | `{question, mode?, web?, match_id?, agent?}`: the answer, its cards and charts, any web sources, which agent answered and questions to ask next. Without `match_id` it answers about the current match |
+| `POST /api/copilot/ask` | `{question, mode?, web?, match_id?, agent?}`: the answer, its cards and charts, its sources (the agent's connectors and the web), which agent answered and questions to ask next. Without `match_id` it answers about the current match |
 | `POST /mcp` | The same answers as Model Context Protocol tools (streamable HTTP) |
 
 **As MCP tools.** Any MCP client (GitHub Copilot in VS Code, Claude, an Azure AI Foundry agent) can put Ask Copilot's questions to Kickstream at `http://127.0.0.1:8000/mcp`. The tools are `ask_copilot`, `match_state`, `win_prediction`, `tactics`, `player_report`, `head_to_head`, `highlight`, `play_history`, `why_it_matters` and `where_play_is`. Each returns the answer assembled from the recorded numbers, the facts it rests on and its cards; none calls a model or searches the web, and all of them only read. Leave `match_id` out for the current match. On a deployment, `/mcp` sits behind the same sign-in as the studio, and only the hosts the app serves are accepted.

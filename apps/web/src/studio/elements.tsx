@@ -234,11 +234,12 @@ function CameraFeed({ tile, names, renderVideo, language, shape = { kind: "box" 
   }, [tile.acsId, renderVideo]);
   const circle = shape.kind === "circle";
   const label = tile.present ? tile.name : `${tile.name} · ${t(language, "away")}`;
-  // A circle is ringed like a broadcast guest bubble; its initials and name tag scale with it.
+  // A circle is ringed like a broadcast guest bubble. A box fills its cell, so one camera scales with the frame it is given.
   const frame: CSSProperties = circle
     ? { width: shape.diameter, height: shape.diameter, flex: "none", borderRadius: "50%", boxSizing: "border-box",
         border: `${Math.max(3, Math.round(shape.diameter / 40))}px solid #FFFFFF`, boxShadow: "0 8px 24px rgba(0, 0, 0, 0.45)" }
-    : { borderRadius: 16 };
+    : { width: "100%", height: "100%", minWidth: 0, minHeight: 0, borderRadius: 28, boxSizing: "border-box",
+        border: "8px solid rgba(255, 255, 255, 0.92)", boxShadow: "0 18px 50px rgba(0, 0, 0, 0.45)" };
   const initialsSize = circle ? Math.round(shape.diameter / 3) : 96;
   return (
     <div data-testid="camera-tile" data-person={tile.id}
@@ -279,7 +280,7 @@ function CamerasView({ data, names, circles, width, height }: { data: ProgramDat
   const rows = tiles.length <= 2 ? 1 : 2;
   return (
     <div data-testid="program-cameras"
-      style={{ width: "100%", height: "100%", display: "grid", gap: 16, gridTemplateColumns: `repeat(${columns}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
+      style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, display: "grid", gap: 16, gridTemplateColumns: `repeat(${columns}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
       {tiles.map((tile) => (
         <CameraFeed key={tile.id} tile={tile} names={names} renderVideo={data.renderVideo} language={data.language} />
       ))}

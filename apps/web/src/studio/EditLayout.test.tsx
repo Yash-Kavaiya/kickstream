@@ -1,4 +1,4 @@
-import { act, fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { useState } from "react";
 import type { SceneElement, Studio } from "../contracts";
 import { EMPTY } from "../stream/store";
@@ -13,7 +13,7 @@ const text = (over: Partial<SceneElement> = {}): SceneElement => ({
 /** Renders the layout for one scene of `doc`, keeping its edits and selection as the studio page does. */
 function setup(doc: Studio = studio(), sceneId = "s1") {
   const calls = {
-    onChange: vi.fn(), onActivate: vi.fn(), onMode: vi.fn(), onRename: vi.fn(), onClose: vi.fn(),
+    onChange: vi.fn(), onActivate: vi.fn(), onRename: vi.fn(), onClose: vi.fn(),
     onUpload: vi.fn(async () => "abc.png"),
   };
   function Harness() {
@@ -26,7 +26,7 @@ function setup(doc: Studio = studio(), sceneId = "s1") {
           calls.onChange(elements);
           setScene((current) => ({ ...current, elements }));
         }}
-        onUpload={calls.onUpload} onActivate={calls.onActivate} onMode={calls.onMode} onRename={calls.onRename} onClose={calls.onClose} />
+        onUpload={calls.onUpload} onActivate={calls.onActivate} onRename={calls.onRename} onClose={calls.onClose} />
     );
   }
   renderUi(<Harness />);
@@ -60,14 +60,11 @@ test("a scene edited off the program says so and can be put on it", () => {
   expect(calls.onActivate).toHaveBeenCalledWith("s2");
 });
 
-test("the scene's commentary can be changed or left to the studio default", () => {
-  const calls = setup();
-  const commentary = layout().getByLabelText("Commentary") as HTMLSelectElement;
-  expect(commentary.options[0].textContent).toBe("Studio default (Fan)");
-  fireEvent.change(commentary, { target: { value: "analyst" } });
-  expect(calls.onMode).toHaveBeenLastCalledWith("s1", "analyst");
-  fireEvent.change(commentary, { target: { value: "" } });
-  expect(calls.onMode).toHaveBeenLastCalledWith("s1", null);
+test("editing a scene does not offer a choice of commentary", () => {
+  setup();
+  expect(layout().queryByLabelText("Commentary")).toBeNull();
+  expect(layout().queryByRole("option", { name: "Fan commentary" })).toBeNull();
+  expect(layout().queryByRole("option", { name: "Analyst commentary" })).toBeNull();
 });
 
 test("with nothing selected the scene can be renamed", () => {
@@ -108,6 +105,46 @@ test("a widget is added with one click, at its own size, and its settings appear
 
   fireEvent.click(gallery.getByRole("button", { name: "Add Graph" }));
   expect(lastElements(calls).at(-1)).toMatchObject({ type: "graph", props: { metric: "momentum" } });
+});
+
+test("an element added by its type can be deleted from that row and from its settings", () => {
+  const calls = setup();
+  expect((layout().getByRole("button", { name: "Delete element" }) as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.change(layout().getByLabelText("Element type"), { target: { value: "ticker" } });
+  fireEvent.click(layout().getByRole("button", { name: "Add element" }));
+  expect(lastElements(calls).some((item) => item.type === "ticker")).toBe(true);
+  fireEvent.click(layout().getByRole("button", { name: "Delete element" }));
+  expect(lastElements(calls).some((item) => item.type === "ticker")).toBe(false);
+
+  fireEvent.click(layout().getByRole("button", { name: "Add element" }));
+  fireEvent.click(layout().getByRole("button", { name: "Delete this element" }));
+  expect(lastElements(calls).some((item) => item.type === "ticker")).toBe(false);
+});
+
+test("a scene can take a league plate, a picture at an opacity, and have that plate cleared", async () => {
+  const calls = setup();
+  expect(screen.queryByTestId("scene-background")).toBeNull();
+  fireEvent.click(layout().getByRole("button", { name: "Super League" }));
+  const plate = () => lastElements(calls).find((item) => item.props.role === "background");
+  expect(plate()).toMatchObject({
+    type: "image", x: 0, y: 0, width: 1920, height: 1080,
+    props: { role: "background", theme: "super-league", opacity: 1, fit: "cover" },
+  });
+  expect(screen.getByTestId("scene-background").getAttribute("data-theme")).toBe("super-league");
+  expect(layout().queryByRole("button", { name: "image element" })).toBeNull();
+
+  const slider = layout().getByRole("slider", { name: "Background opacity" });
+  fireEvent.change(slider, { target: { value: "0.4" } });
+  fireEvent.pointerUp(slider);
+  expect(plate()!.props.opacity).toBe(0.4);
+
+  const file = new File([new Uint8Array([1, 2, 3])], "plate.png", { type: "image/png" });
+  fireEvent.change(layout().getByLabelText("Background image"), { target: { files: [file] } });
+  await waitFor(() => expect(plate()!.props.image_id).toBe("abc.png"));
+
+  fireEvent.click(layout().getByRole("button", { name: "Clear background" }));
+  expect(lastElements(calls).some((item) => item.props.role === "background")).toBe(false);
+  expect(screen.queryByTestId("scene-background")).toBeNull();
 });
 
 test("elements can be hidden, restacked, removed and added from the layers", () => {

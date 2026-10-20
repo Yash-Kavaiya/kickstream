@@ -1,6 +1,6 @@
 import { Button, Field, makeStyles, Select, Text, tokens, Tooltip } from "@fluentui/react-components";
 import {
-  AddRegular, ChartMultipleRegular, ChatRegular, CubeRegular, DataLineRegular, DataTrendingRegular, LightbulbRegular, MegaphoneRegular,
+  AddRegular, ChartMultipleRegular, ChatRegular, CubeRegular, DataLineRegular, DataTrendingRegular, DeleteRegular, LightbulbRegular, MegaphoneRegular,
   MoneyRegular, NumberSymbolRegular, PersonRunningRegular, PollRegular,
 } from "@fluentui/react-icons";
 import { type ReactElement, useState } from "react";
@@ -65,12 +65,13 @@ export function widgetElement(widget: (typeof WIDGETS)[number], elements: SceneE
 
 interface ElementLibraryProps {
   scene: Scene;
+  selectedId: string | null;
   onSelect(elementId: string | null): void;
   onChange(elements: SceneElement[]): void;
 }
 
 /** Adds widgets, or any element by its type, to the scene. */
-export function ElementLibrary({ scene, onSelect, onChange }: ElementLibraryProps) {
+export function ElementLibrary({ scene, selectedId, onSelect, onChange }: ElementLibraryProps) {
   const styles = useStyles();
   const [type, setType] = useState<SceneElement["type"]>("text");
   const full = scene.elements.length >= MAX_ELEMENTS;
@@ -79,6 +80,11 @@ export function ElementLibrary({ scene, onSelect, onChange }: ElementLibraryProp
     const added: SceneElement = { id: newElementId(), type, x: 760, y: 440, width: 400, height: 200, layer: nextLayer(scene.elements), visible: true, props: {} };
     onChange([...scene.elements, added]);
     onSelect(added.id);
+  };
+  const removeSelected = () => {
+    if (!selectedId) return;
+    onChange(scene.elements.filter((element) => element.id !== selectedId));
+    onSelect(null);
   };
   const addWidget = (widget: (typeof WIDGETS)[number]) => {
     const added = widgetElement(widget, scene.elements, (scene.elements.length % 6) * 40);
@@ -109,6 +115,7 @@ export function ElementLibrary({ scene, onSelect, onChange }: ElementLibraryProp
           </Select>
         </Field>
         <Button icon={<AddRegular />} onClick={add} disabled={full}>Add element</Button>
+        <Button icon={<DeleteRegular />} appearance="secondary" disabled={selectedId === null} onClick={removeSelected}>Delete element</Button>
       </div>
     </div>
   );

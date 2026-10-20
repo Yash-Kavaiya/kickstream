@@ -152,7 +152,7 @@ export function App({ eventSource, retryMs = 2000, pollMs = 3000, initialView = 
           )}
           {isAgentView(view) && catalog && shownAgent && (
             <AgentDetail agent={shownAgent} catalog={catalog} match={data} language={language} playerId={followedId} problem={agentProblem}
-              onFollow={follow} onView={setView} onToggle={(agentId, enabled) => void toggleAgent(agentId, enabled)} />
+              onFollow={follow} onView={setView} onToggle={(agentId, enabled) => void toggleAgent(agentId, enabled)} onCatalog={setCatalog} />
           )}
           {view === "match" && (
             <main className={styles.match}>

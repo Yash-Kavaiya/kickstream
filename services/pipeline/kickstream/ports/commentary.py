@@ -17,6 +17,8 @@ class CommentaryContext:
     facts: tuple[tuple[str, str], ...]
     # Whether this is the scene arriving, or more said while it stays on air.
     opening: bool
+    # The language the spoken line must use. Facts stay in English for the model to translate.
+    language: str = "en"
 
 
 class CommentaryWriter(Protocol):

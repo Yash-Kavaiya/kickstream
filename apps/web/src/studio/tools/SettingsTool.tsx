@@ -2,7 +2,7 @@ import { Button, Field, Input, makeStyles, MessageBar, MessageBarBody, Select, S
 import { useEffect, useState } from "react";
 import { listDevices, type MediaDeps, type NamedDevice } from "../../calls/thisComputer";
 import type { LocalCamera, StudioSettings } from "../../contracts";
-import { LANGUAGE_NAMES, LANGUAGES, type Language, type Mode } from "../../i18n";
+import { LANGUAGE_NAMES, LANGUAGES, type Language } from "../../i18n";
 
 const useStyles = makeStyles({
   panel: { display: "flex", flexDirection: "column", gap: tokens.spacingVerticalM },
@@ -53,13 +53,20 @@ function ThisComputerSection({ settings, onSave, media }: { settings: StudioSett
     <section className={styles.section} aria-label="This computer's camera">
       <Text weight="semibold">This computer's camera and microphone</Text>
       <Text size={200} className={styles.muted}>
-        Puts you on the program in a camera circle, with your voice on the stream, straight from this computer: no guest call
-        is needed. It works where Kickstream itself runs, so on your own computer, not on a server.
+        Puts you on the program, with your voice on the stream, straight from this computer. No guest is needed. On your
+        own you fill a large frame, and it scales with the picture. It works where Kickstream itself runs, so on your own computer, not on a server.
       </Text>
       <Switch label="Show my camera and use my microphone" checked={local.enabled}
         onChange={(_, data) => {
           save({ enabled: data.checked });
-          if (data.checked) void find();
+          if (data.checked) {
+            // Ask in this click. Waiting for the studio to save first drops the gesture, and the prompt never appears.
+            const open = media?.getUserMedia ?? ((constraints: MediaStreamConstraints) => navigator.mediaDevices.getUserMedia(constraints));
+            void Promise.resolve(open({ video: true, audio: true }))
+              .then((stream) => stream?.getTracks().forEach((track) => track.stop()))
+              .catch(() => {});
+            void find();
+          }
         }} />
       <Field label="Camera">
         <Select value={local.camera ?? ""} onChange={(_, data) => save({ camera: data.value || null })}>
@@ -89,12 +96,6 @@ export function SettingsPanel({ settings, onSave, media }: { settings: StudioSet
   const styles = useStyles();
   return (
     <div className={styles.panel}>
-      <Field label="Default commentary" hint="Used by scenes that do not choose Fan or Analyst themselves.">
-        <Select value={settings.mode} onChange={(_, data) => onSave({ ...settings, mode: data.value as Mode })}>
-          <option value="fan">Fan</option>
-          <option value="analyst">Analyst</option>
-        </Select>
-      </Field>
       <Field label="Program language">
         <Select value={settings.language} onChange={(_, data) => onSave({ ...settings, language: data.value as Language })}>
           {LANGUAGES.map((language) => (

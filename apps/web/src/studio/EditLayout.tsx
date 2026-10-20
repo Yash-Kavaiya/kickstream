@@ -1,6 +1,7 @@
-import { Badge, Button, makeStyles, Select, Text, tokens } from "@fluentui/react-components";
+import { Badge, Button, makeStyles, Text, tokens } from "@fluentui/react-components";
 import { CheckmarkRegular, LiveRegular, PlayRegular, SlideLayoutRegular } from "@fluentui/react-icons";
 import type { MatchStatus, Scene, SceneElement, Studio } from "../contracts";
+import { BackgroundPanel, isBackground } from "./background";
 import { ElementLibrary } from "./edit/ElementLibrary";
 import { Inspector } from "./edit/Inspector";
 import { Layers } from "./edit/Layers";
@@ -45,7 +46,7 @@ function snapMove(before: SceneElement[], after: SceneElement[]): SceneElement[]
   const [element] = moved;
   const old = previous.get(element.id)!;
   if (old.width !== element.width || old.height !== element.height) return after;
-  const others = after.filter((other) => other.id !== element.id && other.visible).map(rectOf);
+  const others = after.filter((other) => other.id !== element.id && other.visible && !isBackground(other)).map(rectOf);
   const rect = snapToGuides(rectOf(element), others);
   return after.map((other) => (other.id === element.id ? { ...other, ...rect } : other));
 }
@@ -60,7 +61,6 @@ interface EditLayoutProps {
   onChange(elements: SceneElement[]): void;
   onUpload(file: File): Promise<string | null>;
   onActivate(sceneId: string): void;
-  onMode(sceneId: string, mode: "fan" | "analyst" | null): void;
   onRename(sceneId: string, name: string): void;
   onClose(): void;
   /** The team sheets, for choosing the player a player card follows. */
@@ -71,12 +71,11 @@ interface EditLayoutProps {
 
 /** Arranges one scene: add widgets, restack them, move them on the canvas and change their settings. */
 export function EditLayout({
-  scene, studio, data, selectedId, onSelect, onChange, onUpload, onActivate, onMode, onRename, onClose, status = null, reserve,
+  scene, studio, data, selectedId, onSelect, onChange, onUpload, onActivate, onRename, onClose, status = null, reserve,
 }: EditLayoutProps) {
   const styles = useStyles();
   const [frame, scale] = useStageScale(reserve);
   const onAir = scene.id === studio.active_scene_id;
-  const defaultMode = studio.settings.mode === "fan" ? "Fan" : "Analyst";
 
   return (
     <section className={styles.layout} aria-label="Edit layout">
@@ -95,17 +94,12 @@ export function EditLayout({
             </Button>
           </>
         )}
-        <Select size="small" aria-label="Commentary" value={scene.mode ?? ""}
-          onChange={(_, choice) => onMode(scene.id, choice.value === "" ? null : (choice.value as "fan" | "analyst"))}>
-          <option value="">{`Studio default (${defaultMode})`}</option>
-          <option value="fan">Fan commentary</option>
-          <option value="analyst">Analyst commentary</option>
-        </Select>
         <Button appearance="primary" icon={<CheckmarkRegular />} aria-label="Close edit layout" onClick={onClose}>Done</Button>
       </div>
       <div className={styles.body}>
         <div className={styles.side}>
-          <ElementLibrary scene={scene} onSelect={onSelect} onChange={onChange} />
+          <BackgroundPanel scene={scene} onChange={onChange} onUpload={onUpload} />
+          <ElementLibrary scene={scene} selectedId={selectedId} onSelect={onSelect} onChange={onChange} />
           <Layers scene={scene} selectedId={selectedId} onSelect={onSelect} onChange={onChange} />
         </div>
         <div ref={frame} className={styles.frame}>

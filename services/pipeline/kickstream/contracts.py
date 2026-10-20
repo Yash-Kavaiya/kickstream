@@ -789,27 +789,28 @@ class AgentTool(BaseModel):
     description: str
 
 
-class AgentSpec(BaseModel):
+class AgentConnector(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    id: Literal['event_interpreter', 'tactical_analyst', 'prediction', 'explainability', 'visualization', 'player_tracking', 'highlights']
-    name: str
-    description: str
-    instructions: str
-    triggers: list[str]
-    tools: list[AgentTool]
-    outputs: list[str]
-    upstream: list[Literal['event_interpreter', 'tactical_analyst', 'prediction', 'explainability', 'visualization', 'player_tracking', 'highlights']]
+    id: str
+    name: constr(min_length=1, max_length=60)
+    url: constr(max_length=500)
+    description: constr(max_length=300)
+    header: constr(max_length=60) | None = None
+    has_secret: bool
     enabled: bool
 
 
-class AgentCatalog(BaseModel):
+class ConnectorCheck(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    agents: list[AgentSpec]
-    model: bool
+    ok: bool
+    status: int | None = None
+    snippet: str
+    problem: str | None = None
+    ms: conint(ge=0)
 
 
 class MatchIntelligence(BaseModel):
@@ -1017,6 +1018,7 @@ class CopilotSource(BaseModel):
     title: str
     url: str
     snippet: str
+    kind: Literal['web', 'connector'] | None = 'web'
 
 
 class CopilotSeries(BaseModel):
@@ -1151,6 +1153,31 @@ class AutoLiveSettings(BaseModel):
     min_minutes: confloat(ge=0.5, le=120.0)
     max_minutes: confloat(ge=0.5, le=120.0)
     commentary: bool
+    language: (
+        Literal[
+            'en',
+            'es',
+            'hi',
+            'pt',
+            'fr',
+            'de',
+            'it',
+            'nl',
+            'pl',
+            'tr',
+            'ar',
+            'ru',
+            'zh',
+            'ja',
+            'ko',
+            'id',
+            'bn',
+            'ta',
+            'ur',
+            'mr',
+        ]
+        | None
+    ) = 'en'
     talk_minutes: confloat(ge=0.0, le=60.0)
     narration: bool
     voice: constr(pattern=r'^[A-Za-z]{2,3}-[A-Za-z]{2,4}-[A-Za-z0-9]{2,40}$')
@@ -1294,3 +1321,28 @@ class Broadcasts(BaseModel):
     broadcasts: list[Broadcast] = Field(..., max_length=100)
     current_id: str | None = None
     ai: bool
+
+
+class AgentSpec(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: Literal['event_interpreter', 'tactical_analyst', 'prediction', 'explainability', 'visualization', 'player_tracking', 'highlights']
+    name: str
+    description: str
+    instructions: str
+    triggers: list[str]
+    tools: list[AgentTool]
+    outputs: list[str]
+    upstream: list[Literal['event_interpreter', 'tactical_analyst', 'prediction', 'explainability', 'visualization', 'player_tracking', 'highlights']]
+    enabled: bool
+    custom_instructions: constr(max_length=2000) | None = ''
+    connectors: list[AgentConnector] | None = Field([], max_length=3, validate_default=True)
+
+
+class AgentCatalog(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    agents: list[AgentSpec]
+    model: bool

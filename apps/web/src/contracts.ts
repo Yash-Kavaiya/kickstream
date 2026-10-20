@@ -1082,6 +1082,35 @@ export interface AgentSpec {
     | "highlights"
   )[];
   enabled: boolean;
+  custom_instructions?: string;
+  /**
+   * @maxItems 3
+   */
+  connectors?: AgentConnector[];
+}
+/**
+ * This interface was referenced by `KickstreamContracts`'s JSON-Schema
+ * via the `definition` "AgentConnector".
+ */
+export interface AgentConnector {
+  id: string;
+  name: string;
+  url: string;
+  description: string;
+  header?: string | null;
+  has_secret: boolean;
+  enabled: boolean;
+}
+/**
+ * This interface was referenced by `KickstreamContracts`'s JSON-Schema
+ * via the `definition` "ConnectorCheck".
+ */
+export interface ConnectorCheck {
+  ok: boolean;
+  status?: number | null;
+  snippet: string;
+  problem?: string | null;
+  ms: number;
 }
 /**
  * This interface was referenced by `KickstreamContracts`'s JSON-Schema
@@ -1340,6 +1369,7 @@ export interface CopilotSource {
   title: string;
   url: string;
   snippet: string;
+  kind?: "web" | "connector";
 }
 /**
  * This interface was referenced by `KickstreamContracts`'s JSON-Schema
@@ -1512,6 +1542,27 @@ export interface AutoLiveSettings {
   min_minutes: number;
   max_minutes: number;
   commentary: boolean;
+  language?:
+    | "en"
+    | "es"
+    | "hi"
+    | "pt"
+    | "fr"
+    | "de"
+    | "it"
+    | "nl"
+    | "pl"
+    | "tr"
+    | "ar"
+    | "ru"
+    | "zh"
+    | "ja"
+    | "ko"
+    | "id"
+    | "bn"
+    | "ta"
+    | "ur"
+    | "mr";
   talk_minutes: number;
   narration: boolean;
   voice: string;

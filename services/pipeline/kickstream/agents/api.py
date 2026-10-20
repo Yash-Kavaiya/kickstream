@@ -1,10 +1,11 @@
 from collections.abc import Callable
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
-from kickstream.agents.registry import AgentSwitches
-from kickstream.contracts import AgentCatalog, MatchIntelligence
+from kickstream.agents.connectors import AgentConnectors
+from kickstream.agents.registry import AgentSwitches, ConnectorDraft
+from kickstream.contracts import AgentCatalog, ConnectorCheck, MatchIntelligence
 from kickstream.domain.types import Mode
 from kickstream.ports.store import MatchStore
 
@@ -18,6 +19,34 @@ class Switch(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     enabled: bool
+
+
+class Instructions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    custom_instructions: str = Field(max_length=4000)  # the switches give the real limit and its message
+
+
+class ConnectorBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(max_length=200)
+    url: str = Field(max_length=1000)
+    description: str = Field(default="", max_length=1000)
+    header: str | None = Field(default=None, max_length=200)
+    # Left out, the saved secret is kept; "" removes it. It is never sent back.
+    secret: str | None = Field(default=None, max_length=1000)
+    enabled: bool = True
+
+    def draft(self) -> ConnectorDraft:
+        return ConnectorDraft(
+            name=self.name,
+            url=self.url,
+            description=self.description,
+            header=self.header,
+            secret=self.secret,
+            enabled=self.enabled,
+        )
 
 
 def intelligence(store: MatchStore, match_id: str, mode: Mode, player: str | None) -> MatchIntelligence:
@@ -60,7 +89,12 @@ def intelligence(store: MatchStore, match_id: str, mode: Mode, player: str | Non
 
 
 def build_agents_router(
-    *, switches: AgentSwitches, store: MatchStore, match_exists: Callable[[str], bool], model: bool
+    *,
+    switches: AgentSwitches,
+    store: MatchStore,
+    match_exists: Callable[[str], bool],
+    model: bool,
+    connectors: AgentConnectors | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix="/api")
 
@@ -72,6 +106,32 @@ def build_agents_router(
     def put_agent(agent_id: str, body: Switch) -> AgentCatalog:
         switches.set(agent_id, body.enabled)
         return switches.catalog(model=model)
+
+    @router.put("/agents/{agent_id}/instructions")
+    def put_instructions(agent_id: str, body: Instructions) -> AgentCatalog:
+        switches.set_instructions(agent_id, body.custom_instructions)
+        return switches.catalog(model=model)
+
+    @router.post("/agents/{agent_id}/connectors")
+    def post_connector(agent_id: str, body: ConnectorBody) -> AgentCatalog:
+        switches.add_connector(agent_id, body.draft())
+        return switches.catalog(model=model)
+
+    @router.put("/agents/{agent_id}/connectors/{connector_id}")
+    def put_connector(agent_id: str, connector_id: str, body: ConnectorBody) -> AgentCatalog:
+        switches.update_connector(agent_id, connector_id, body.draft())
+        return switches.catalog(model=model)
+
+    @router.delete("/agents/{agent_id}/connectors/{connector_id}")
+    def delete_connector(agent_id: str, connector_id: str) -> AgentCatalog:
+        switches.remove_connector(agent_id, connector_id)
+        return switches.catalog(model=model)
+
+    @router.post("/agents/{agent_id}/connectors/{connector_id}/check")
+    async def check_connector(agent_id: str, connector_id: str) -> ConnectorCheck:
+        if connectors is None:
+            raise HTTPException(status_code=404, detail="Connectors are not set up.")
+        return await connectors.check(agent_id, connector_id)
 
     @router.get("/matches/{match_id}/intelligence")
     def get_intelligence(match_id: str, mode: Mode = "fan", player: str | None = None) -> MatchIntelligence:

@@ -8,6 +8,7 @@ from collections import deque
 from collections.abc import Callable
 
 from kickstream.autolive.facts import MatchFacts, pct
+from kickstream.autolive.languages import PHRASES, known
 from kickstream.contracts import AutoLiveScene, FanZone
 from kickstream.ports.commentary import CommentaryContext, CommentaryWriter
 
@@ -163,10 +164,129 @@ def _lines_for(scene: AutoLiveScene, f: MatchFacts, fans: FanZone | None) -> lis
     return by_scene.get(scene.id, [_narrative_line(f), _stats_line(f)])
 
 
+def _say(language: str, key: str, **values: object) -> str:
+    return PHRASES[language][key].format(**values)
+
+
+def _one(language: str, f: MatchFacts, *kinds: str) -> str | None:
+    for kind in kinds:
+        line = _fact(language, f, kind)
+        if line:
+            return line
+    return None
+
+
+def _fact(language: str, f: MatchFacts, kind: str) -> str | None:
+    if kind == "stats" and f.stats is not None:
+        home, away = f.stats.home, f.stats.away
+        return _say(
+            language, "stats", home=f.name("home"), away=f.name("away"),
+            hxg=f"{home.xg:.2f}", hshots=home.shots, axg=f"{away.xg:.2f}", ashots=away.shots,
+        )
+    if kind == "possession" and f.stats is not None:
+        home, away = f.stats.home, f.stats.away
+        side = "home" if home.possession >= away.possession else "away"
+        team = home if side == "home" else away
+        return _say(
+            language, "possession", side=f.name(side), share=f"{max(home.possession, away.possession):.0f}",
+            accuracy=f"{team.pass_accuracy:.0f}",
+        )
+    if kind == "prediction" and f.prediction is not None:
+        guess = f.prediction
+        return _say(
+            language, "prediction", home=f.name("home"), away=f.name("away"),
+            home_pct=pct(guess.win_home), draw=pct(guess.draw), away_pct=pct(guess.win_away),
+        )
+    if kind == "next_goal" and f.prediction is not None:
+        guess = f.prediction
+        side = "home" if guess.next_goal_home >= guess.next_goal_away else "away"
+        return _say(language, "next_goal", side=f.name(side), chance=pct(max(guess.next_goal_home, guess.next_goal_away)))
+    if kind == "momentum" and f.stats is not None:
+        swing = f.stats.momentum
+        if abs(swing) < 0.15:
+            return _say(language, "momentum_even")
+        return _say(language, "momentum", side=f.name("home" if swing > 0 else "away"))
+    if kind == "player" and (player := f.top_player()) is not None:
+        return _say(
+            language, "player", name=player.name, team=f.name(player.team),
+            rating=f"{player.rating:.1f}", touches=player.touches, goals=player.goals,
+        )
+    if kind == "moment" and f.moments:
+        moment = f.moments[-1]
+        what = _say(language, moment.kind if moment.kind in PHRASES[language] else "big_chance")
+        who = f.player_name(moment.player_id)
+        if who:
+            return _say(language, "moment_by", what=what, player=who, team=f.name(moment.team), minute=moment.minute)
+        return _say(language, "moment", what=what, team=f.name(moment.team), minute=moment.minute)
+    if kind == "next_action" and f.prediction is not None and f.prediction.next_actions and f.prediction.possession:
+        best = max(f.prediction.next_actions, key=lambda action: action.probability)
+        move = best.action if best.action in {"pass", "shot", "turnover"} else "pass"
+        return _say(
+            language, "next_action", side=f.name(f.prediction.possession),
+            action=_say(language, move), chance=pct(best.probability),
+        )
+    return None
+
+
+_SPOKEN = {
+    "welcome": ("moment", "prediction"),
+    "live-match": ("moment", "momentum"),
+    "score-centre": ("stats", "possession"),
+    "stadium-3d": ("possession", "next_goal"),
+    "pressure-map": ("momentum", "possession"),
+    "momentum": ("momentum", "moment"),
+    "xg-race": ("stats", "moment"),
+    "win-probability": ("prediction", "next_goal"),
+    "key-moments": ("moment", "stats"),
+    "analyst-desk": ("stats", "momentum"),
+    "fan-zone": ("moment", "prediction"),
+    "story-so-far": ("stats", "moment"),
+    "possession": ("possession", "momentum"),
+    "headlines": ("moment", "prediction"),
+    "agent-interpreter": ("moment", "next_action"),
+    "agent-tactics": ("momentum", "possession"),
+    "agent-prediction": ("prediction", "next_goal", "next_action"),
+    "agent-explainability": ("moment", "momentum"),
+    "agent-visualization": ("possession", "next_action"),
+    "agent-tracking": ("player", "stats"),
+    "agent-highlights": ("moment", "player"),
+    "agent-squad": ("player", "prediction"),
+}
+
+
+def _in_language(
+    language: str, scene: AutoLiveScene, f: MatchFacts, *, opening: bool, rng: random.Random
+) -> str:
+    """The same shape as the English templates, in the chosen language. Free English prose is left out."""
+    parts: list[str | None] = []
+    if opening:
+        parts.append(_say(language, rng.choice(("open_a", "open_b", "open_c", "open_d")), name=scene.name))
+    status = f.status
+    if status is None:
+        parts.append(_say(language, "waiting_open" if opening else "waiting"))
+        return _join(*parts)[:MAX_CHARS]
+    if status.score_home == status.score_away:
+        parts.append(_say(language, "level", home=status.home.name, away=status.away.name, n=status.score_home))
+    else:
+        lead, trail = ("home", "away") if status.score_home > status.score_away else ("away", "home")
+        parts.append(_say(
+            language, "lead", lead=f.name(lead), trail=f.name(trail),
+            high=max(status.score_home, status.score_away), low=min(status.score_home, status.score_away),
+        ))
+    clock = {"pre_match": "pre_match", "half_time": "half_time", "finished": "finished", "abandoned": "abandoned"}.get(status.state)
+    parts.append(_say(language, clock) if clock else _say(language, "minute", n=max(status.minute, 1)))
+    parts.append(_one(language, f, *_SPOKEN.get(scene.id, ("moment", "stats"))))
+    return _join(*parts)[:MAX_CHARS]
+
+
 def scripted(
-    scene: AutoLiveScene, f: MatchFacts, fans: FanZone | None, *, opening: bool, rng: random.Random
+    scene: AutoLiveScene, f: MatchFacts, fans: FanZone | None, *, opening: bool, rng: random.Random,
+    language: str = "en",
 ) -> str:
     """Commentary from templates: who is on screen, the score, then what this screen is about."""
+    language = known(language)
+    if language != "en":
+        return _in_language(language, scene, f, opening=opening, rng=rng)
     name = _AGENT_NAMES.get(scene.agent or "", scene.name)
     intro = rng.choice(_OPENINGS).format(name=name) + " " + _sentence(scene.blurb) if opening else ""
     found = [line for line in _lines_for(scene, f, fans) if line]
@@ -215,9 +335,10 @@ class CommentaryService:
         return len(self._calls) < self._per_hour
 
     async def write(
-        self, scene: AutoLiveScene, facts: MatchFacts, fans: FanZone | None, *, opening: bool
+        self, scene: AutoLiveScene, facts: MatchFacts, fans: FanZone | None, *, opening: bool, language: str = "en",
     ) -> tuple[str, str]:
         """The text and where it came from: "model" or "scripted"."""
+        language = known(language)
         if self._writer is not None and self._allowed():
             self._calls.append(self._now())
             ctx = CommentaryContext(
@@ -227,6 +348,7 @@ class CommentaryService:
                 blurb=scene.blurb,
                 facts=facts.labelled(fans),
                 opening=opening,
+                language=language,
             )
             try:
                 text = await asyncio.wait_for(self._writer.write(ctx), self._timeout_s)
@@ -234,4 +356,4 @@ class CommentaryService:
                     return text.strip()[:MAX_CHARS], "model"
             except Exception as exc:  # noqa: BLE001 - every model failure falls back to the templates
                 log.warning("the auto live commentator failed (%s); using the templates", type(exc).__name__)
-        return scripted(scene, facts, fans, opening=opening, rng=self._rng), "scripted"
+        return scripted(scene, facts, fans, opening=opening, rng=self._rng, language=language), "scripted"

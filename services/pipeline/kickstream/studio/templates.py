@@ -17,9 +17,6 @@ PITCH_3D = "3D pitch"
 # Offered for new scenes, but not in the studio a new installation starts with.
 EXTRAS = frozenset({INTERVIEW, MATCH_INTELLIGENCE, FAN_ZONE, PITCH_3D})
 
-# Whose commentary each built-in scene carries; the others follow the studio's mode.
-TEMPLATE_MODES = {LIVE_MATCH: "fan", ANALYST_DESK: "analyst", MATCH_INTELLIGENCE: "analyst", FAN_ZONE: "fan"}
-
 
 def _el(layer: int, type_: str, x: int, y: int, width: int, height: int, **props) -> SceneElement:
     return SceneElement(
@@ -116,7 +113,7 @@ def builtin_templates() -> list[Scene]:
             id=f"builtin-{name.lower().replace(' ', '-')}",
             name=name,
             template=name,
-            mode=TEMPLATE_MODES.get(name),
+            mode=None,
             elements=elements,
         )
         for name, elements in layouts.items()

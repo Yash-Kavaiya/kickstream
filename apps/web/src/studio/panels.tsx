@@ -1,11 +1,10 @@
 import { Badge } from "@fluentui/react-components";
 import {
-  BrainCircuitRegular, ClockRegular, CubeRegular, DataTrendingRegular, HourglassRegular, PeopleCommunityRegular, PeopleRegular, SlideLayoutRegular,
+  BrainCircuitRegular, ClockRegular, CubeRegular, DataTrendingRegular, HourglassRegular, PeopleCommunityRegular, SlideLayoutRegular,
   SportSoccerRegular, TrophyRegular, VideoPersonRegular,
 } from "@fluentui/react-icons";
 import type { ReactElement } from "react";
-import type { Scene, Studio } from "../contracts";
-import { sceneMode } from "./mode";
+import type { Scene } from "../contracts";
 
 const TEMPLATE_ICONS: Record<string, ReactElement> = {
   "Starting soon": <ClockRegular />, "Live match": <SportSoccerRegular />, "Analyst desk": <DataTrendingRegular />,
@@ -15,14 +14,9 @@ const TEMPLATE_ICONS: Record<string, ReactElement> = {
 
 export const sceneIcon = (scene: Scene) => TEMPLATE_ICONS[scene.template ?? ""] ?? <SlideLayoutRegular />;
 
-/** Whose commentary a scene carries: Fan or Analyst, marked when it only follows the studio's default. */
-export function ModeBadge({ scene, studio }: { scene: Scene; studio: Studio }) {
-  const mode = sceneMode(scene, studio);
-  const label = mode === "fan" ? "Fan" : "Analyst";
+/** The one commentary every scene carries. */
+export function ModeBadge() {
   return (
-    <Badge size="small" appearance={scene.mode ? "tint" : "outline"} color={mode === "fan" ? "brand" : "important"}
-      icon={mode === "fan" ? <PeopleRegular /> : <DataTrendingRegular />}>
-      {scene.mode ? label : `${label} (default)`}
-    </Badge>
+    <Badge size="small" appearance="outline" color="brand">Commentary</Badge>
   );
 }

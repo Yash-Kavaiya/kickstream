@@ -18,7 +18,7 @@ import { useLiveDocument } from "../stream/useLiveDocument";
 import { type CurrentMatchOptions, useCurrentMatch } from "../stream/useCurrentMatch";
 import {
   activateScene, clearBanner, createScene, deleteScene, deleteTemplate, endCountdown, saveScene, saveSettings,
-  saveTemplate, saveTicker, setSceneMode, showBanner, startBreak, startCountdown, startReplay, stopReplay, uploadImage,
+  saveTemplate, saveTicker, showBanner, startBreak, startCountdown, startReplay, stopReplay, uploadImage,
 } from "./api";
 import { Backstage } from "./Backstage";
 import { EditLayout } from "./EditLayout";
@@ -100,7 +100,7 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
   const { doc: output, accept: acceptOutput } = useLiveDocument<Output>(OUTPUT_STREAM, eventSource, retryMs);
   const { doc: people, accept: acceptPeople } = useLiveDocument<People>(broadcastId !== undefined ? peopleStream(broadcastId) : null, eventSource, retryMs);
   const { doc: fans, accept: acceptFans } = useLiveDocument<FanZone>(FANS_STREAM, eventSource, retryMs);
-  // The match is followed in the commentary of the scene on air, as the program shows it.
+  // The match is followed in the studio's one commentary, as the program shows it.
   const mode = studio ? programMode(studio) : undefined;
   const language = studio?.settings.language;
   const profile = useMemo<ViewerProfile | null>(
@@ -278,7 +278,6 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
     const scene = editing?.id === sceneId ? editing : studio.scenes.find((item) => item.id === sceneId);
     if (scene) void run(() => saveScene({ id: sceneId, name, elements: scene.elements }));
   };
-  const setMode = (sceneId: string, choice: "fan" | "analyst" | null) => void run(() => setSceneMode(sceneId, choice));
   const activate = (sceneId: string) => void run(() => activateScene(sceneId));
 
   // People are invited into a broadcast, so only a broadcast's studio has the Guests tool.
@@ -346,13 +345,18 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
               containerAction={<Button appearance="transparent" aria-label="Dismiss" icon={<DismissRegular />} onClick={dismiss} />} />
           </MessageBar>
         )}
+        {thisComputer.problem && (
+          <MessageBar intent="warning" className={styles.toast}>
+            <MessageBarBody>{thisComputer.problem}</MessageBarBody>
+          </MessageBar>
+        )}
       </section>
       <div className={styles.body}>
         <div className={styles.main}>
           {editing ? (
             <EditLayout scene={editing} studio={studio} data={data} selectedId={selectedId} onSelect={setSelectedId}
               onChange={(elements) => void changeElements(editing, elements)} onUpload={upload} onActivate={activate}
-              onMode={setMode} onRename={rename} onClose={() => setEditingId(null)} status={match.status} reserve={reserve} />
+              onRename={rename} onClose={() => setEditingId(null)} status={match.status} reserve={reserve} />
           ) : (
             <div className={styles.fixed}>
               <Stage scene={withFallbacks(onAir, studio, cameras, fans)} data={data} live={live} reserve={reserve} />
@@ -370,7 +374,6 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
               onActivate={activate}
               onEdit={setEditingId}
               onRename={rename}
-              onMode={setMode}
               onCreate={(source, ref) => void run(() => createScene(source, ref))}
               onDelete={(sceneId) => void run(() => deleteScene(sceneId))}
               onSaveTemplate={(sceneId) => void run(() => saveTemplate(sceneId))}

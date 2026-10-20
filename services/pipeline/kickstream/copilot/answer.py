@@ -189,7 +189,7 @@ HELP = (
     "highlight, and the play history. Turn on web search for anything beyond these matches."
 )
 NO_MATCH = (
-    "No match has been started yet, so there is nothing to answer from. Start one on the Match data page."
+    "No match has been started yet, so there is nothing to answer from. Start one on the Analyst teams page."
 )
 
 

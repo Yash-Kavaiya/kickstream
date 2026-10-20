@@ -35,6 +35,7 @@ from kickstream.adapters.dir_image_store import DirImageStore
 from kickstream.adapters.fake_rooms import FakeRooms
 from kickstream.adapters.ffmpeg import FfmpegEncoder, FfmpegSender
 from kickstream.adapters.ffmpeg_clips import FfmpegClipCutter
+from kickstream.adapters.http_connector import HttpConnectorClient
 from kickstream.adapters.json_record_store import JsonRecordStore
 from kickstream.adapters.json_studio_store import JsonStudioStore
 from kickstream.adapters.memory_bus import InMemoryEventBus
@@ -49,6 +50,7 @@ from kickstream.adapters.statsbomb import OPEN_DATA, StatsBombOpenData
 from kickstream.adapters.web_search import TavilySearch, WikipediaSearch
 from kickstream.adapters.x_feed import XRecentSearch
 from kickstream.agents.api import build_agents_router
+from kickstream.agents.connectors import AgentConnectors
 from kickstream.agents.explain import ExplainService
 from kickstream.agents.registry import AgentSwitches
 from kickstream.agents.stage import AgentsStage
@@ -89,6 +91,7 @@ from kickstream.people.service import PeopleService
 from kickstream.ports.calls import CallRooms
 from kickstream.ports.clock import Clock
 from kickstream.ports.commentary import CommentaryWriter
+from kickstream.ports.connector import ConnectorClient
 from kickstream.ports.copilot import CopilotWriter, WebSearch
 from kickstream.ports.explainer import Explainer
 from kickstream.ports.match_source import LiveSource, ReplaySource
@@ -509,6 +512,7 @@ class Pipeline:
     broadcasts: BroadcastService
     people: PeopleService
     agents: AgentSwitches
+    connectors: AgentConnectors
     explainer: ExplainService
     fans: FanService
     copilot: CopilotService
@@ -634,6 +638,7 @@ def build_pipeline(
     live: Mapping[str, LiveSource] | None = None,
     speech: SpeechSynth | None = None,
     commentary_writer: CommentaryWriter | None = None,
+    connector_client: ConnectorClient | None = None,
 ) -> Pipeline:
     bus, store, broadcaster = InMemoryEventBus(), _store(settings), InProcessBroadcaster()
     credential = DefaultAzureCredential() if settings.foundry_configured else None
@@ -705,10 +710,18 @@ def build_pipeline(
         public_origin=settings.public_origin,
         now=now,
     )
+    agents = AgentSwitches(
+        JsonRecordStore(settings.data_dir / "agents.json"),
+        JsonRecordStore(settings.data_dir / "agent-secrets.json", private=True),
+    )
+    connectors = AgentConnectors(
+        agents,
+        connector_client if connector_client is not None else HttpConnectorClient(),
+        names={agent.id: agent.name for agent in agents.catalog(model=False).agents},
+    )
     if explainer is None and models is not None:
-        explainer = AgentExplainer(*models)
+        explainer = AgentExplainer(*models, extra=lambda: agents.instructions("explainability"))
     explain = ExplainService(ScriptedExplainer(), explainer, max_calls=settings.llm_max_explanations)
-    agents = AgentSwitches(JsonRecordStore(settings.data_dir / "agents.json"))
     fans = FanService(
         JsonRecordStore(settings.data_dir / "fans.json"),
         feeds if feeds is not None else _feeds(settings),
@@ -724,6 +737,8 @@ def build_pipeline(
         search=search if search is not None else _search(settings),
         writer=copilot_writer,
         agents=agents.catalog(model=False).agents,
+        instructions=agents.instructions,
+        connectors=connectors.consult,
         now=now,
     )
     tools = build_mcp(copilot, hosts=settings.socket_hosts)
@@ -777,6 +792,7 @@ def build_pipeline(
         broadcasts,
         people,
         agents,
+        connectors,
         explain,
         fans,
         copilot,
@@ -810,6 +826,7 @@ def create_app(
     live: Mapping[str, LiveSource] | None = None,
     speech: SpeechSynth | None = None,
     commentary_writer: CommentaryWriter | None = None,
+    connector_client: ConnectorClient | None = None,
 ) -> FastAPI:
     # Match IDs are unique to this process, so an ID a browser kept from before a restart is
     # reported as unknown instead of silently naming a different match.
@@ -834,6 +851,7 @@ def create_app(
         live=live,
         speech=speech,
         commentary_writer=commentary_writer,
+        connector_client=connector_client,
     )
 
     @asynccontextmanager
@@ -915,6 +933,7 @@ def create_app(
             store=pipeline.store,
             match_exists=pipeline.controller.exists,
             model=pipeline.explainer.has_model,
+            connectors=pipeline.connectors,
         )
     )
     if settings.web_dir is not None:

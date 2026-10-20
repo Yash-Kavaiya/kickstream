@@ -237,7 +237,7 @@ export function HomePage({ eventSource, retryMs, pollMs }: CurrentMatchOptions) 
             value={`${sending.length} of ${output?.destinations.length ?? 0} on`}
             detail={<Text size={200} className={styles.muted}>{live ? "Streaming now" : "Off air"}</Text>} />
           <Tile icon={<SlideLayoutRegular />} tint="#7535E3" label="Scene on air" value={onAir?.name ?? "—"}
-            detail={studio && onAir ? <ModeBadge scene={onAir} studio={studio} /> : undefined} />
+            detail={studio && onAir ? <ModeBadge /> : undefined} />
           <Tile icon={<SportSoccerRegular />} tint="#0866FF" label="Match feed"
             value={status ? `${status.home.name} ${status.score_home}–${status.score_away} ${status.away.name}` : "Not started"}
             detail={status ? <Text size={200} className={styles.muted}>{`${Math.max(status.minute, match.minute)}' · ${status.state}`}</Text> : (

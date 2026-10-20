@@ -20,29 +20,15 @@ import { useWindowSize } from "../studio/ProgramPage";
 import { useCaptureOffer } from "../studio/useCaptureOffer";
 import { useNow, useStudio } from "../studio/useStudio";
 import { AUTOLIVE_STREAM, nextScene, sayNow, saveAutoLiveSettings, showScene } from "./api";
+import { COMMENTARY_LANGUAGES, commentaryLanguage, screenLanguage } from "./languages";
 import { AutoLiveStage } from "./AutoLiveStage";
 import type { SpeakerDeps } from "./speaker";
 import { useAutoLiveVoice } from "./useAutoLiveVoice";
 import { type StayAwakeOptions, useStayAwake } from "./useStayAwake";
 
-/** Auto live speaks English: its commentary, its voices and its screens' labels. */
-const PROFILE: ViewerProfile = { mode: "fan", language: "en", club: null, player: null };
 /** In silence, a commentary line stays on screen this long. */
 const CAPTION_S = 30;
 
-export const VOICES: { id: string; label: string }[] = [
-  { id: "en-GB-RyanNeural", label: "Ryan (UK)" },
-  { id: "en-GB-SoniaNeural", label: "Sonia (UK)" },
-  { id: "en-GB-ThomasNeural", label: "Thomas (UK)" },
-  { id: "en-US-AndrewNeural", label: "Andrew (US)" },
-  { id: "en-US-AvaNeural", label: "Ava (US)" },
-  { id: "en-US-GuyNeural", label: "Guy (US)" },
-  { id: "en-US-JennyNeural", label: "Jenny (US)" },
-  { id: "en-AU-WilliamNeural", label: "William (Australia)" },
-  { id: "en-IE-ConnorNeural", label: "Connor (Ireland)" },
-  { id: "en-IN-PrabhatNeural", label: "Prabhat (India)" },
-  { id: "en-IN-NeerjaNeural", label: "Neerja (India)" },
-];
 const SPEEDS = [1, 2, 5, 10, 30];
 
 type Options = CurrentMatchOptions & {
@@ -56,11 +42,14 @@ function useProgram({ eventSource, retryMs, pollMs }: CurrentMatchOptions) {
   const { doc, offset, accept, connected } = useLiveDocument<AutoLive>(AUTOLIVE_STREAM, eventSource, retryMs);
   const { studio } = useStudio(eventSource, retryMs);
   const { doc: fans } = useLiveDocument<FanZone>(FANS_STREAM, eventSource, retryMs);
-  useCurrentMatch(PROFILE, { eventSource, retryMs, pollMs });
+  const tongue = commentaryLanguage(doc?.settings.language);
+  const language = screenLanguage(tongue.id);
+  const profile = useMemo<ViewerProfile>(() => ({ mode: "fan", language, club: null, player: null }), [language]);
+  useCurrentMatch(profile, { eventSource, retryMs, pollMs });
   const match = useMatch((state) => state.data);
   // Once a second is enough for the clock and the bar; the screens animate by themselves.
   const now = useNow(1000) + offset;
-  const data: ProgramData | null = studio ? { match, studio, now, language: "en", fans } : null;
+  const data: ProgramData | null = studio ? { match, studio, now, language, fans } : null;
   const latest = match.narratives[0];
   const narrative = useMemo(() => (latest ? { id: latest.id, text: latest.text } : null), [latest]);
   return { doc, accept, data, now, narrative, connected };
@@ -197,6 +186,7 @@ export function AutoLivePage(props: Options) {
     );
   }
   const s = doc.settings;
+  const tongue = commentaryLanguage(s.language);
   const speech = doc.speech;
   const toggleScene = (id: string, kept: boolean) => save({ scenes: kept ? [...s.scenes, id] : s.scenes.filter((scene) => scene !== id) });
   const nextIn = doc.next_at != null && s.enabled ? Math.max(0, Math.round(doc.next_at - now)) : null;
@@ -264,18 +254,28 @@ export function AutoLivePage(props: Options) {
             <Switch label="AI live commentary" checked={s.commentary} disabled={busy} onChange={(_, value) => save({ commentary: value.checked })} />
             <MinutesInput label="Talk again on the same screen every (minutes, 0 = only on a new screen)" value={s.talk_minutes} min={0} max={60}
               disabled={busy || !s.commentary} onCommit={(value) => save({ talk_minutes: value })} />
+            <Field label="Commentary language">
+              <Select value={tongue.id} disabled={busy || !s.commentary} onChange={(_, value) => {
+                const next = commentaryLanguage(value.value);
+                save({ language: next.id as AutoLiveSettings["language"], voice: next.voices.some((item) => item.id === s.voice) ? s.voice : next.voices[0].id });
+              }}>
+                {COMMENTARY_LANGUAGES.map((item) => (
+                  <option key={item.id} value={item.id}>{item.native} · {item.name}</option>
+                ))}
+              </Select>
+            </Field>
             <Switch label="Also read the match narration" checked={s.narration} disabled={busy} onChange={(_, value) => save({ narration: value.checked })} />
             <Field label="Voice">
               <Select value={s.voice} disabled={busy} onChange={(_, value) => save({ voice: value.value })}>
-                {(VOICES.some((voice) => voice.id === s.voice) ? VOICES : [{ id: s.voice, label: s.voice }, ...VOICES]).map((voice) => (
-                  <option key={voice.id} value={voice.id}>{voice.label}</option>
+                {(tongue.voices.some((item) => item.id === s.voice) ? tongue.voices : [{ id: s.voice, label: s.voice }, ...tongue.voices]).map((item) => (
+                  <option key={item.id} value={item.id}>{item.label}</option>
                 ))}
               </Select>
             </Field>
             <RateSlider value={s.rate} disabled={busy} onCommit={(rate) => save({ rate })} />
             <div className={styles.row}>
               <Button icon={<Speaker2Regular />} onClick={() => {
-                void turnSoundOn().then(() => speaker?.say("This is Kickstream Live, football around the clock, with seven AI agents and live commentary."));
+                void turnSoundOn().then(() => speaker?.say(tongue.sample));
               }}>Test the voice</Button>
               <Badge appearance="tint" color={speech.azure && !speech.problem ? "success" : "warning"}>
                 {speech.azure ? `Azure Speech${speech.region ? ` · ${speech.region}` : ""}` : "Browser voice"}

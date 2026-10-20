@@ -15,10 +15,10 @@ test("with nothing extra on air the scene is unchanged", () => {
 
 const sam = { id: "i1", name: "Sam", acsId: "8:acs:1", present: true };
 
-test("people on stage get a camera circle in the corner when the scene shows no cameras", () => {
+test("one person on stage, with no cameras element, gets a large frame that scales with the picture", () => {
   const shown = withCamerasFallback(scene(), [sam]);
   expect(shown.elements.at(-1)).toMatchObject({
-    id: "__cameras", type: "cameras", x: 1620, y: 720, width: 260, height: 260, visible: true, props: { names: true, shape: "circle" },
+    id: "__cameras", type: "cameras", x: 1108, y: 32, width: 780, height: 916, visible: true, props: { names: true, shape: "box" },
   });
   expect(withCamerasFallback(scene(), [])).toEqual(scene());
   const own = scene({ elements: [element({ id: "c", type: "cameras", props: {} })] });

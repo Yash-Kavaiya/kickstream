@@ -1,7 +1,9 @@
-import { Field, Input, makeStyles, Select, Slider, Switch, Text, Textarea, tokens } from "@fluentui/react-components";
+import { Button, Field, Input, makeStyles, Select, Slider, Switch, Text, Textarea, tokens } from "@fluentui/react-components";
+import { DeleteRegular } from "@fluentui/react-icons";
 import { type ChangeEvent, type KeyboardEvent, useEffect, useState } from "react";
 import { ZOOM_RANGE } from "../../agents/Pitch3D";
 import type { MatchStatus, Scene, SceneElement } from "../../contracts";
+import { isBackground } from "../background";
 import { heldView } from "../widgets";
 
 const NAME_MAX = 60;
@@ -210,7 +212,7 @@ export function Inspector({ scene, selectedId, onChange, onUpload, status = null
           <Switch label="Name tags" checked={selected.props.names !== false} onChange={(_, data) => setProp(selected, "names", data.checked)} />
         </>
       )}
-      {selected.type === "image" && (
+      {selected.type === "image" && !isBackground(selected) && (
         <>
           <Field label="Image file" hint="PNG, JPEG or WebP, up to 2 MB">
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void upload(selected, event)} />
@@ -223,6 +225,13 @@ export function Inspector({ scene, selectedId, onChange, onUpload, status = null
           </Field>
         </>
       )}
+      {isBackground(selected) && (
+        <Text size={200}>Themes, the picture and opacity are under Scene background.</Text>
+      )}
+      <Button appearance="secondary" icon={<DeleteRegular />}
+        onClick={() => onChange(scene.elements.filter((element) => element.id !== selected.id))}>
+        Delete this element
+      </Button>
     </div>
   );
 }

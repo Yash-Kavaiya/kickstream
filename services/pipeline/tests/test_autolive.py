@@ -1,18 +1,21 @@
 import asyncio
 import json
 import random
+import string
 from types import SimpleNamespace
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from kickstream.adapters.agent_commentary import commentary_prompt
 from kickstream.adapters.azure_speech import AzureSpeech, ssml
 from kickstream.adapters.clocks import InstantClock
 from kickstream.adapters.json_record_store import JsonRecordStore
 from kickstream.app import Settings, create_app
 from kickstream.autolive.commentary import CommentaryService, scripted
 from kickstream.autolive.facts import MatchFacts, ordinal
+from kickstream.autolive.languages import KEYS, PHRASES
 from kickstream.autolive.scenes import SCENE_IDS, TRANSITIONS, auto_scenes
 from kickstream.autolive.service import (
     BETWEEN_MATCHES_S,
@@ -23,7 +26,7 @@ from kickstream.autolive.service import (
     default_settings,
 )
 from kickstream.autolive.speech import SpeechService
-from kickstream.contracts import MatchStatus
+from kickstream.contracts import AutoLiveSettings, MatchStatus
 from kickstream.domain.recent import make_room
 from kickstream.domain.teams import AWAY, HOME
 from kickstream.ports.commentary import CommentaryError
@@ -438,6 +441,52 @@ def test_scripted_commentary_names_the_screen_the_score_and_the_minute():
     assert "lead" in said and "22nd minute" in said
 
 
+_PHRASE_FIELDS = {
+    "open_a": {"name"}, "open_b": {"name"}, "open_c": {"name"}, "open_d": {"name"},
+    "waiting_open": set(), "waiting": set(),
+    "level": {"home", "away", "n"}, "lead": {"lead", "trail", "high", "low"},
+    "pre_match": set(), "half_time": set(), "finished": set(), "abandoned": set(), "minute": {"n"},
+    "stats": {"home", "away", "hxg", "hshots", "axg", "ashots"},
+    "possession": {"side", "share", "accuracy"},
+    "prediction": {"home", "away", "home_pct", "draw", "away_pct"},
+    "next_goal": {"side", "chance"},
+    "momentum_even": set(), "momentum": {"side"},
+    "player": {"name", "team", "rating", "touches", "goals"},
+    "moment": {"what", "team", "minute"}, "moment_by": {"what", "player", "team", "minute"},
+    "goal": set(), "red_card": set(), "big_chance": set(), "momentum_swing": set(), "sustained_pressure": set(),
+    "next_action": {"side", "action", "chance"},
+    "pass": set(), "shot": set(), "turnover": set(),
+}
+
+
+def test_every_spoken_phrase_uses_only_fields_the_speaker_fills():
+    assert set(_PHRASE_FIELDS) == set(KEYS)
+    for code, rows in PHRASES.items():
+        assert set(rows) == set(KEYS)
+        for key, template in rows.items():
+            names = {field for _, field, _, _ in string.Formatter().parse(template) if field}
+            assert names <= _PHRASE_FIELDS[key], (code, key, names - _PHRASE_FIELDS[key])
+
+
+def test_scripted_commentary_speaks_hindi_with_the_score_and_the_minute():
+    facts = MatchFacts()
+    scene = next(s for s in auto_scenes() if s.id == "agent-tactics")
+    facts.take("m-1", status(minute=22))
+    said = scripted(scene, facts, None, opening=True, rng=random.Random(1), language="hi")
+    assert "22" in said and "1" in said and "0" in said
+    assert any("\u0900" <= char <= "\u097f" for char in said)
+    assert HOME.name in said and AWAY.name in said
+    assert "lead" not in said and "22nd" not in said
+    english = scripted(scene, facts, None, opening=True, rng=random.Random(1), language="xx")
+    assert "lead" in english and "22nd minute" in english
+
+
+def test_saved_auto_live_settings_without_a_language_stay_english():
+    raw = default_settings().model_dump()
+    raw.pop("language")
+    assert AutoLiveSettings.model_validate(raw).language == "en"
+
+
 def test_ordinals_read_naturally():
     assert [ordinal(n) for n in (1, 2, 3, 4, 11, 12, 13, 21, 22, 90, 101)] == [
         "1st",
@@ -482,9 +531,22 @@ async def test_the_model_words_the_commentary_within_its_hourly_allowance():
     writer = Writer(answer="  What a start in this one.  ")
     service = CommentaryService(writer, per_hour=1, now=lambda: 0.0)
     assert await service.write(scene, facts, None, opening=True) == ("What a start in this one.", "model")
+    assert writer.asked[0].language == "en"
     assert ("Score", f"{HOME.name} 1, {AWAY.name} 0") in writer.asked[0].facts
     text, source = await service.write(scene, facts, None, opening=True)
     assert source == "scripted" and text
+
+
+async def test_the_model_is_asked_in_the_commentary_language():
+    scene = auto_scenes()[0]
+    facts = MatchFacts()
+    facts.take("m-1", status())
+    writer = Writer(answer="Qué comienzo en este partido.")
+    service = CommentaryService(writer, now=lambda: 0.0)
+    text, source = await service.write(scene, facts, None, opening=True, language="es")
+    assert (text, source) == ("Qué comienzo en este partido.", "model")
+    assert writer.asked[0].language == "es"
+    assert "Language: Spanish. Speak only in that language." in commentary_prompt(writer.asked[0])
 
 
 async def test_a_failing_model_falls_back_to_the_templates():

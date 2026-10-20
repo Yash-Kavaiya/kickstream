@@ -34,12 +34,22 @@ function camerasCorner(count: number) {
   return { x: CANVAS.width - CIRCLE_MARGIN - width, y: CANVAS.height - ABOVE_TICKER - CIRCLE, width, height: CIRCLE };
 }
 
-/** People on stage must be seen: add a row of camera circles to a scene that shows no cameras. */
+const SOLO_MARGIN = 32;
+const SOLO_WIDTH = 780;
+
+/** One person, with nobody beside them: a presenter frame down the right of the 16:9 picture. It scales with the picture. */
+function soloFrame() {
+  const height = CANVAS.height - ABOVE_TICKER - SOLO_MARGIN * 2;
+  return { x: CANVAS.width - SOLO_MARGIN - SOLO_WIDTH, y: SOLO_MARGIN, width: SOLO_WIDTH, height };
+}
+
+/** People on stage must be seen. Alone, that is a large frame. With others, a row of circles. */
 export function withCamerasFallback(scene: Scene, cameras: readonly CameraTile[]): Scene {
   if (cameras.length === 0 || scene.elements.some((element) => element.type === "cameras" && element.visible)) return scene;
+  const solo = cameras.length === 1;
   const fallback = {
-    id: "__cameras", type: "cameras" as const, ...camerasCorner(cameras.length), layer: nextLayer(scene.elements), visible: true,
-    props: { names: true, shape: "circle" },
+    id: "__cameras", type: "cameras" as const, ...(solo ? soloFrame() : camerasCorner(cameras.length)), layer: nextLayer(scene.elements), visible: true,
+    props: { names: true, shape: solo ? "box" : "circle" },
   };
   return { ...scene, elements: [...scene.elements, fallback] };
 }

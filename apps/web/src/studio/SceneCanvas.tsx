@@ -3,7 +3,9 @@ import { type CSSProperties, type KeyboardEvent, type PointerEvent, useRef, useS
 import type { MatchStatus, Scene, SceneElement } from "../contracts";
 import { EASE, leave, MotionStyles, rise, usePresence } from "../motion/motion";
 import { darkTheme } from "../theme";
+import { isBackground, SceneBackground } from "./background";
 import { ElementView, type ProgramData } from "./elements";
+import { GoalCelebration, useGoalFlash } from "./GoalCelebration";
 import { CANVAS, GRID, moveBy, type Rect, rectOf, resizeBy, sameRect } from "./geometry";
 
 interface SceneCanvasProps {
@@ -65,10 +67,12 @@ function Credit({ status, zIndex }: { status: MatchStatus; zIndex: number }) {
 export function SceneCanvas({ scene, data, scale, editable = false, selectedId = null, onSelect, onChange }: SceneCanvasProps) {
   const [draft, setDraft] = useState<{ id: string; rect: Rect } | null>(null);
   const gesture = useRef<Gesture | null>(null);
-  const drawn = scene.elements.filter((element) => editable || element.visible).sort((a, b) => a.layer - b.layer);
+  const plate = scene.elements.find(isBackground);
+  const drawn = scene.elements.filter((element) => !isBackground(element) && (editable || element.visible)).sort((a, b) => a.layer - b.layer);
   // An element taken off the scene stays for a moment, to fade out instead of vanishing.
   const shown = usePresence(drawn, elementId);
   const status = data.match.status;
+  const goal = useGoalFlash(data);
 
   const commit = (id: string, rect: Rect) =>
     onChange?.(scene.elements.map((element) => (element.id === id ? { ...element, ...rect } : element)));
@@ -118,6 +122,7 @@ export function SceneCanvas({ scene, data, scale, editable = false, selectedId =
       onPointerDown={editable ? () => onSelect?.(null) : undefined}>
       <MotionStyles />
       <div style={{ position: "relative", width: CANVAS.width, height: CANVAS.height, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
+        {plate && (editable || plate.visible) && <SceneBackground props={plate.props} dim={editable && !plate.visible} />}
         {shown.map(({ item: element, leaving }) => {
           const dragged = draft?.id === element.id;
           const rect = dragged ? draft.rect : rectOf(element);
@@ -147,6 +152,7 @@ export function SceneCanvas({ scene, data, scale, editable = false, selectedId =
           );
         })}
         {status?.credit && <Credit status={status} zIndex={Math.max(0, ...shown.map(({ item }) => item.layer)) + 1} />}
+        {goal && <GoalCelebration flash={goal} />}
       </div>
     </FluentProvider>
   );

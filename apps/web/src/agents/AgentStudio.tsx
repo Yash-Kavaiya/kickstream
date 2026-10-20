@@ -6,7 +6,9 @@ import { type Language, t } from "../i18n";
 import { MotionStyles, rise } from "../motion/motion";
 import { useCanUseStudio } from "../shell/viewer";
 import type { MatchData } from "../stream/store";
+import { AgentChat } from "./AgentChat";
 import { AgentFlow } from "./AgentFlow";
+import { ConnectorsCard, InstructionsCard } from "./AgentSettings";
 import { type AgentId, agentState, type AgentState, downstream, runsOf } from "./api";
 import { teamOf, teamRuns, teamsIn, unteamed } from "./teams";
 import {
@@ -243,7 +245,12 @@ function Output({ agent, match, language, playerId, onFollow }: { agent: AgentSp
 }
 
 /** One agent, as Copilot Studio shows one: what it is told to do, what sets it off, its tools, and its work. */
-export function AgentDetail({ agent, catalog, match, language, playerId, onFollow, onView, onToggle, problem }: StudioProps & { agent: AgentSpec; catalog: AgentCatalog }) {
+export function AgentDetail({ agent, catalog, match, language, playerId, onFollow, onView, onToggle, onCatalog, problem }: StudioProps & {
+  agent: AgentSpec;
+  catalog: AgentCatalog;
+  /** A changed catalogue: after the agent's instructions or connectors were saved. */
+  onCatalog(catalog: AgentCatalog): void;
+}) {
   const styles = useStyles();
   const studio = useCanUseStudio();
   const state = agentState(agent, match);
@@ -308,6 +315,9 @@ export function AgentDetail({ agent, catalog, match, language, playerId, onFollo
             ))}
           </ul>
         </Card>
+        <InstructionsCard agent={agent} model={catalog.model} onCatalog={onCatalog} />
+        <ConnectorsCard agent={agent} onCatalog={onCatalog} />
+        <div className={styles.wide}><AgentChat agent={agent} /></div>
         <div className={styles.wide}><Output agent={agent} match={match} language={language} playerId={playerId} onFollow={onFollow} /></div>
         <div className={styles.wide}>
           <Card title="Activity" extra={<HistoryRegular aria-hidden />}>

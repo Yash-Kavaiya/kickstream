@@ -4,7 +4,7 @@ import asyncio
 import logging
 import time
 import uuid
-from collections.abc import Callable, Iterable
+from collections.abc import Awaitable, Callable, Iterable
 
 from kickstream.contracts import AgentSpec, CopilotAnswer, CopilotInfo, CopilotSource
 from kickstream.copilot import answer as answering
@@ -18,6 +18,7 @@ from kickstream.ports.store import MatchStore
 log = logging.getLogger(__name__)
 MAX_QUESTION = 300
 MAX_SOURCES = 4
+MAX_ANSWER_SOURCES = 5  # the connectors' and the web's together
 SEARCH_TIMEOUT_S = 12.0
 WRITER_TIMEOUT_S = 20.0
 
@@ -37,6 +38,9 @@ class CopilotService:
         search: WebSearch | None = None,
         writer: CopilotWriter | None = None,
         agents: Iterable[AgentSpec] = (),
+        instructions: Callable[[AgentId], str] = lambda _agent: "",
+        connectors: Callable[[AgentId, str, str | None], Awaitable[tuple[list[CopilotSource], list[str]]]]
+        | None = None,
         max_model_calls: int = 40,
         now: Callable[[], float] = time.time,
     ) -> None:
@@ -47,6 +51,9 @@ class CopilotService:
         self._match_exists = match_exists
         self._search = search
         self._writer = writer
+        # The studio's own instructions for an agent, and its connectors, asked when it is.
+        self._instructions = instructions
+        self._connectors = connectors
         self._max_model_calls = max_model_calls
         self._model_calls: dict[str, int] = {}
         self._now = now
@@ -131,8 +138,21 @@ class CopilotService:
                 except (SearchFailure, TimeoutError) as exc:
                     problem = str(exc) or "The web search did not answer in time."
 
+        connected: list[CopilotSource] = []
+        if agent is not None and self._connectors is not None:
+            connected, failed = await self._connectors(agent, question, view.match_id if view else None)
+            if failed:
+                problem = " ".join([problem, *failed]) if problem else " ".join(failed)
+        connected_facts = [
+            f"From {source.title}, a service connected to this agent: {source.snippet}"
+            for source in connected
+        ]
+
         intent, text = draft.intent, draft.answer
-        if not draft.placed and results:
+        # With no match to answer from, what the agent's connectors said is the answer.
+        if connected and (not draft.placed or view is None):
+            text = f"From {connected[0].title}: {connected[0].snippet}"
+        elif not draft.placed and results:
             intent = "web"
             text = f"From {self._search.name}: {results[0].snippet}"
         elif not draft.placed and web and not results and problem is None:
@@ -141,13 +161,16 @@ class CopilotService:
         source = "scripted"
         key = view.match_id if view else "none"
         asked = self._model_calls.get(key, 0)
-        if self._writer is not None and (draft.facts or results) and asked < self._max_model_calls:
+        facts = [*draft.facts, *connected_facts]
+        if self._writer is not None and (facts or results) and asked < self._max_model_calls:
             self._model_calls[key] = asked + 1
             spec = self._mentions.agents.get(agent) if agent else None
-            speaker = Speaker(spec.name, spec.description) if spec else None
+            speaker = (
+                Speaker(spec.name, spec.description, self._instructions(agent)) if spec and agent else None
+            )
             try:
                 written = await asyncio.wait_for(
-                    self._writer.write(question, draft.facts, results, speaker), WRITER_TIMEOUT_S
+                    self._writer.write(question, facts, results, speaker), WRITER_TIMEOUT_S
                 )
                 if written.strip():
                     text, source = written.strip(), "agent"
@@ -161,7 +184,10 @@ class CopilotService:
             answer=text,
             cards=draft.cards,
             charts=draft.charts,
-            sources=[CopilotSource(title=r.title, url=r.url, snippet=r.snippet) for r in results],
+            sources=[
+                *connected,
+                *(CopilotSource(title=r.title, url=r.url, snippet=r.snippet) for r in results),
+            ][:MAX_ANSWER_SOURCES],
             followups=list(answering.FOLLOWUPS[intent]),
             source=source,
             searched=searched,

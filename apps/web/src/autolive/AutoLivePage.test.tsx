@@ -146,6 +146,26 @@ test("the control page switches auto live, sets the minutes and the stream, and 
   await waitFor(() => expect(calls.at(-1)?.body).toMatchObject({ scenes: ["welcome"] }));
 });
 
+test("choosing a commentary language saves that language and its default voice", async () => {
+  const calls = serve((call) => {
+    if (call.method === "PUT") return autoLive({ revision: 9, settings: autoLiveSettings(call.body as Partial<AutoLive["settings"]>) });
+    return autoLive({ revision: 9 });
+  });
+  const { deps } = silentVoice();
+  renderUi(<AutoLivePage eventSource={FakeEventSourceCtor} retryMs={10} pollMs={10} speech={deps} />);
+  push(autoLive());
+  pushStudio();
+
+  const language = screen.getByLabelText("Commentary language") as HTMLSelectElement;
+  expect(Array.from(language.options).map((option) => option.value)).toHaveLength(20);
+  expect(language.value).toBe("en");
+  fireEvent.change(language, { target: { value: "hi" } });
+  await waitFor(() => expect(calls.at(-1)?.body).toMatchObject({ language: "hi", voice: "hi-IN-MadhurNeural" }));
+
+  const voice = screen.getByLabelText("Voice") as HTMLSelectElement;
+  expect(Array.from(voice.options).map((option) => option.textContent)).toEqual(["मधुर", "स्वरा"]);
+});
+
 test("the control page shows the commentary as captions while its sound is off, and how Azure Speech stands", () => {
   serve();
   const { deps } = silentVoice();

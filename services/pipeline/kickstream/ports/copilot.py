@@ -32,6 +32,8 @@ class Speaker:
 
     name: str
     description: str
+    # The studio's own instructions for this agent, followed where the writer's rules allow.
+    instructions: str = ""
 
 
 class CopilotWriter(Protocol):

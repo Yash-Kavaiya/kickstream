@@ -12,6 +12,7 @@ from pydantic import ValidationError
 
 from kickstream.autolive.commentary import CommentaryService
 from kickstream.autolive.facts import MatchFacts
+from kickstream.autolive.languages import known
 from kickstream.autolive.scenes import SCENE_IDS, TRANSITIONS, auto_scenes
 from kickstream.autolive.speech import SpeechService
 from kickstream.contracts import (
@@ -48,6 +49,7 @@ def default_settings(enabled: bool = False) -> AutoLiveSettings:
         min_minutes=5,
         max_minutes=10,
         commentary=True,
+        language="en",
         talk_minutes=2,
         narration=True,
         voice="en-GB-RyanNeural",
@@ -278,7 +280,9 @@ class AutoLiveService:
 
     async def _write(self, scene: AutoLiveScene, opening: bool) -> None:
         try:
-            text, source = await self._commentary.write(scene, self._facts, self._fans(), opening=opening)
+            text, source = await self._commentary.write(
+                scene, self._facts, self._fans(), opening=opening, language=known(self._settings.language),
+            )
         except Exception:
             log.exception("auto live commentary could not be written")
             return

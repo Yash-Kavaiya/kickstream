@@ -1,6 +1,7 @@
+import { FluentProvider, webLightTheme } from "@fluentui/react-components";
 import { fireEvent, screen } from "@testing-library/react";
 import { EMPTY } from "../stream/store";
-import { element, scene, status, studio } from "../test/fixtures";
+import { element, moment, scene, status, studio } from "../test/fixtures";
 import { renderUi } from "../test/render";
 import type { ProgramData } from "./elements";
 import { SceneCanvas } from "./SceneCanvas";
@@ -135,4 +136,29 @@ test("clicking the empty canvas clears the selection", () => {
   const handlers = edit(1);
   fireEvent.pointerDown(screen.getByTestId("scene-canvas"), { clientX: 5, clientY: 5, pointerId: 1 });
   expect(handlers.onSelect).toHaveBeenCalledWith(null);
+});
+
+test("a goal banner plays a celebration on the picture", () => {
+  const doc = studio({ banner: { id: "b1", text: "GOAL! Luca Marrowby", kind: "goal", duration_s: 8, source_id: null } });
+  renderUi(<SceneCanvas scene={layout} data={{ ...data, studio: doc, match: { ...EMPTY, status: status({ score_home: 1 }) } }} scale={0.5} />);
+  const goal = screen.getByTestId("goal-celebration");
+  expect(goal.textContent).toContain("GOAL");
+  expect(goal.textContent).toContain("GOAL! Luca Marrowby");
+  expect(goal.textContent).toContain("1");
+});
+
+test("a goal already in the match is not replayed, and a new one is", () => {
+  const first = { ...EMPTY, moments: [{ ...moment(), highlighted: false as const }] };
+  const view = renderUi(<SceneCanvas scene={layout} data={{ ...data, match: first }} scale={0.5} />);
+  expect(screen.queryByTestId("goal-celebration")).toBeNull();
+  const next = { ...moment({ id: "m-1-k2", minute: 40, score_home: 2, score_away: 0 }), highlighted: false as const };
+  view.rerender(
+    <FluentProvider theme={webLightTheme}>
+      <SceneCanvas scene={layout} data={{ ...data, match: { ...first, moments: [...first.moments, next] } }} scale={0.5} />
+    </FluentProvider>,
+  );
+  const goal = screen.getByTestId("goal-celebration");
+  expect(goal.textContent).toContain("GOAL");
+  expect(goal.textContent).toContain("40'");
+  expect(goal.textContent).toContain("2");
 });

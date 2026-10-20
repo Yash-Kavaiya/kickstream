@@ -1,5 +1,7 @@
 """Explanations written by a Microsoft Agent Framework agent, from the facts a match agent found."""
 
+from collections.abc import Callable
+
 from agent_framework import Agent
 
 from kickstream.adapters.agent_writer import parse_json
@@ -19,6 +21,16 @@ _INSTRUCTIONS = (
 )
 
 
+def explain_instructions(extra: str = "") -> str:
+    """The rules, then the studio's own instructions, which never change the reply's shape or the facts."""
+    if not extra.strip():
+        return _INSTRUCTIONS
+    return (
+        f"{_INSTRUCTIONS}\n\nThe studio has given these instructions of its own. Follow them where they do not "
+        f"conflict with the rules above:\n{extra.strip()}"
+    )
+
+
 def explain_prompt(ctx: ExplainContext) -> str:
     lines = [
         f"Match: {ctx.home} vs {ctx.away}",
@@ -32,12 +44,17 @@ def explain_prompt(ctx: ExplainContext) -> str:
 
 
 class AgentExplainer:
-    def __init__(self, new_client: ClientFactory, model: str) -> None:
+    def __init__(self, new_client: ClientFactory, model: str, extra: Callable[[], str] = lambda: "") -> None:
         self.model = model
         self._new_client = new_client
+        self._extra = (
+            extra  # the studio's own instructions for the Explainability Agent, read for each finding
+        )
 
     async def explain(self, ctx: ExplainContext) -> dict[Mode, WrittenExplanation]:
-        agent = Agent(client=self._new_client(), name=EXPLAINABILITY, instructions=_INSTRUCTIONS)
+        agent = Agent(
+            client=self._new_client(), name=EXPLAINABILITY, instructions=explain_instructions(self._extra())
+        )
         response = await agent.run(explain_prompt(ctx))
         try:
             raw = parse_json(response.text or "")

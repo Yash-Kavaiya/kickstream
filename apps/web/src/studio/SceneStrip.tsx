@@ -1,7 +1,6 @@
 import {
   Badge, Button, Dialog, DialogActions, DialogBody, DialogContent, DialogSurface, DialogTitle, DialogTrigger, Field, Input,
-  makeStyles, Menu, MenuDivider, MenuGroup, MenuGroupHeader, MenuItem, MenuItemRadio, MenuList, MenuPopover, MenuTrigger,
-  mergeClasses, Text, tokens,
+  makeStyles, Menu, MenuItem, MenuList, MenuPopover, MenuTrigger, mergeClasses, Text, tokens,
 } from "@fluentui/react-components";
 import { AddRegular, CopyRegular, DeleteRegular, EditRegular, MoreHorizontalRegular, RenameRegular, SaveRegular } from "@fluentui/react-icons";
 import { type FormEvent, useState } from "react";
@@ -17,7 +16,6 @@ export const BUILTIN_TEMPLATES = ["Starting soon", "Live match", "Analyst desk",
 const THUMB_WIDTH = 168;
 const THUMB_SCALE = THUMB_WIDTH / CANVAS.width;
 const NAME_MAX = 60;
-const DEFAULT_MODE = "default";
 
 const useStyles = makeStyles({
   // The scenes sit in one row under the stage and scroll sideways when there are many.
@@ -73,7 +71,6 @@ interface SceneStripProps {
   onActivate(sceneId: string): void;
   onEdit(sceneId: string): void;
   onRename(sceneId: string, name: string): void;
-  onMode(sceneId: string, mode: "fan" | "analyst" | null): void;
   onCreate(source: "builtin" | "template" | "scene", ref: string): void;
   onDelete(sceneId: string): void;
   onSaveTemplate(sceneId: string): void;
@@ -99,7 +96,7 @@ export function SceneStrip(props: SceneStripProps) {
                   aria-pressed={onAir} onClick={() => !onAir && onActivate(scene.id)}>
                   {index < 9 && <span className={styles.number} data-testid="scene-number">{index + 1}</span>}
                   {onAir && <Badge className={styles.onAirBadge} size="small" color="danger">On air</Badge>}
-                  <span className={styles.mode}><ModeBadge scene={scene} studio={studio} /></span>
+                  <span className={styles.mode}><ModeBadge /></span>
                 </button>
               </div>
               <div className={styles.row}>
@@ -121,15 +118,11 @@ export function SceneStrip(props: SceneStripProps) {
   );
 }
 
-function SceneMenu({ studio, scene, onAir, onEdit, onMode, onCreate, onDelete, onSaveTemplate, onRenaming }: SceneStripProps & {
+function SceneMenu({ studio, scene, onAir, onEdit, onCreate, onDelete, onSaveTemplate, onRenaming }: SceneStripProps & {
   scene: Scene; onAir: boolean; onRenaming(): void;
 }) {
   return (
-    <Menu checkedValues={{ commentary: [scene.mode ?? DEFAULT_MODE] }}
-      onCheckedValueChange={(_, { checkedItems }) => {
-        const mode = checkedItems[0];
-        onMode(scene.id, mode === "fan" || mode === "analyst" ? mode : null);
-      }}>
+    <Menu>
       <MenuTrigger disableButtonEnhancement>
         <Button size="small" appearance="subtle" icon={<MoreHorizontalRegular />} aria-label={`Scene menu for ${scene.name}`} />
       </MenuTrigger>
@@ -141,13 +134,6 @@ function SceneMenu({ studio, scene, onAir, onEdit, onMode, onCreate, onDelete, o
           <MenuItem icon={<SaveRegular />} aria-label={`Save ${scene.name} as template`} onClick={() => onSaveTemplate(scene.id)}>Save as template</MenuItem>
           <MenuItem icon={<DeleteRegular />} aria-label={`Delete ${scene.name}`} disabled={onAir || studio.scenes.length === 1}
             onClick={() => onDelete(scene.id)}>Delete</MenuItem>
-          <MenuDivider />
-          <MenuGroup>
-            <MenuGroupHeader>Commentary</MenuGroupHeader>
-            <MenuItemRadio name="commentary" value={DEFAULT_MODE}>Studio default commentary</MenuItemRadio>
-            <MenuItemRadio name="commentary" value="fan">Fan commentary</MenuItemRadio>
-            <MenuItemRadio name="commentary" value="analyst">Analyst commentary</MenuItemRadio>
-          </MenuGroup>
         </MenuList>
       </MenuPopover>
     </Menu>

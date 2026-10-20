@@ -32,6 +32,16 @@ def copilot_prompt(
     return "\n".join(lines)
 
 
+def copilot_instructions(speaker: Speaker | None = None) -> str:
+    """The writer's rules, then the studio's own instructions for the agent answering, which never override them."""
+    if speaker is None or not speaker.instructions.strip():
+        return _INSTRUCTIONS
+    return (
+        f"{_INSTRUCTIONS}\n\nThe studio has given {speaker.name} these instructions of its own. Follow them where "
+        f"they do not conflict with the rules above:\n{speaker.instructions.strip()}"
+    )
+
+
 def _lowered(description: str) -> str:
     return description[:1].lower() + description[1:]
 
@@ -44,7 +54,7 @@ class AgentCopilotWriter:
     async def write(
         self, question: str, facts: list[str], sources: list[SearchResult], speaker: Speaker | None = None
     ) -> str:
-        agent = Agent(client=self._new_client(), name=COPILOT, instructions=_INSTRUCTIONS)
+        agent = Agent(client=self._new_client(), name=COPILOT, instructions=copilot_instructions(speaker))
         response = await agent.run(copilot_prompt(question, facts, sources, speaker))
         text = (response.text or "").strip()
         if not text:

@@ -3,6 +3,7 @@
 from agent_framework import Agent
 
 from kickstream.adapters.model_client import ClientFactory
+from kickstream.autolive.languages import language_name
 from kickstream.ports.commentary import CommentaryContext, CommentaryError
 
 COMMENTATOR = "auto-commentator"
@@ -13,8 +14,8 @@ _INSTRUCTIONS = (
     "air and gives its facts. Speak two or three short sentences, at most 60 words, as a lively TV commentator "
     "would: introduce what viewers are looking at when the screen has just arrived, or add something new about it "
     "when it has been on air a while. Use only the facts given; never invent names, numbers or events. If there is "
-    "no match, talk about what the screen shows. Plain English, no lists, no emoji, no hashtags. Reply with the "
-    "spoken text only."
+    "no match, talk about what the screen shows. Speak only in the language the user names, or in English when "
+    "none is named. No lists, no emoji, no hashtags. Reply with the spoken text only."
 )
 
 
@@ -24,6 +25,7 @@ def commentary_prompt(ctx: CommentaryContext) -> str:
         f"About the screen: {ctx.blurb}",
         f"Agent shown: {ctx.agent or 'none'}",
         "The screen has just arrived." if ctx.opening else "The screen has been on air a while.",
+        f"Language: {language_name(ctx.language)}. Speak only in that language.",
         "Facts:",
     ]
     lines += [f"- {label}: {value}" for label, value in ctx.facts] or ["- none yet"]

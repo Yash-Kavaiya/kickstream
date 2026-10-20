@@ -91,14 +91,15 @@ test("the program credits the data of the match it is showing", async () => {
   expect(screen.getByTestId("program-credit").textContent).toBe("Data: StatsBomb");
 });
 
-test("cutting to a Fan or Analyst scene switches the commentary to that scene's", async () => {
+test("cutting scenes keeps the studio's one commentary", async () => {
   serve("m-1");
   renderUi(<ProgramPage eventSource={FakeEventSourceCtor} retryMs={10} pollMs={10} />);
-  const fanAndAnalyst = [scene({ mode: "fan" }), scene({ id: "s2", name: "Analyst desk", template: "Analyst desk", mode: "analyst" })];
-  push(studio({ scenes: [fanAndAnalyst[0], fanAndAnalyst[1]], settings: { ...studio().settings, mode: "analyst" } }));
-  await waitFor(() => expect(stream("/api/matches/")?.url).toBe("/api/matches/m-1/stream?mode=fan&lang=en"));
-  push(studio({ revision: 2, scenes: [fanAndAnalyst[0], fanAndAnalyst[1]], active_scene_id: "s2" }));
+  const both = [scene({ mode: "fan" }), scene({ id: "s2", name: "Analyst desk", template: "Analyst desk", mode: "analyst" })];
+  const settings = { ...studio().settings, mode: "analyst" as const };
+  push(studio({ scenes: [both[0], both[1]], settings }));
   await waitFor(() => expect(stream("/api/matches/")?.url).toBe("/api/matches/m-1/stream?mode=analyst&lang=en"));
+  push(studio({ revision: 2, scenes: [both[0], both[1]], active_scene_id: "s2", settings }));
+  expect(stream("/api/matches/")?.url).toBe("/api/matches/m-1/stream?mode=analyst&lang=en");
 });
 
 test("a banner from the studio appears on the program", () => {
@@ -268,7 +269,7 @@ test("with no room the program joins nothing", async () => {
   expect(call.joined).toHaveLength(0);
 });
 
-test("with this computer's camera on, the program shows it in a circle and carries its microphone", async () => {
+test("with this computer's camera on and no guest, the program shows it large and carries its microphone", async () => {
   serve(null);
   const tracks = [{ kind: "video", stop: vi.fn() }, { kind: "audio", stop: vi.fn() }];
   const camera = { getTracks: () => tracks, getAudioTracks: () => tracks.slice(1), getVideoTracks: () => tracks.slice(0, 1) } as unknown as MediaStream;
@@ -283,7 +284,9 @@ test("with this computer's camera on, the program shows it in a circle and carri
   await waitFor(() => expect(screen.getByTestId("local-video")).toBeTruthy());
   const tile = screen.getByTestId("camera-tile");
   expect(tile.textContent).toContain("Yash");
-  expect(tile.style.borderRadius).toBe("50%");
+  expect(tile.style.borderRadius).toBe("28px");
+  const frame = screen.getByTestId("element-cameras");
+  expect([frame.style.width, frame.style.height]).toEqual(["780px", "916px"]);
   expect(connectAudio).toHaveBeenCalledWith(camera);
   expect(media.getUserMedia).toHaveBeenCalledWith(expect.objectContaining({ video: expect.objectContaining({ deviceId: { exact: "cam-1" } }), audio: true }));
 

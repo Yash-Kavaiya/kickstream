@@ -123,24 +123,13 @@ def test_scenes_can_be_made_from_a_template_a_saved_template_or_another_scene():
     assert copied == [e.model_copy(update={"id": ""}) for e in made.elements] and doc.scenes[-1].id != made.id
 
 
-def test_the_live_match_is_the_fan_scene_and_the_analyst_desk_the_analyst_scene():
-    modes = {t.name: t.mode for t in builtin_templates()}
-    assert modes == {
-        STARTING_SOON: None,
-        LIVE_MATCH: "fan",
-        ANALYST_DESK: "analyst",
-        BREAK: None,
-        FULL_TIME: None,
-        INTERVIEW: None,
-        MATCH_INTELLIGENCE: "analyst",
-        FAN_ZONE: "fan",
-        PITCH_3D: None,
-    }
+def test_built_in_scenes_do_not_choose_a_commentary():
+    assert {t.mode for t in builtin_templates()} == {None}
 
 
 def test_a_new_scene_keeps_the_mode_of_what_it_was_made_from():
     doc = rules.create_scene(default_studio(), "builtin", ANALYST_DESK)
-    assert doc.scenes[-1].mode == "analyst"
+    assert doc.scenes[-1].mode is None
     doc = rules.set_scene_mode(doc, doc.scenes[-1].id, "fan")
     doc = rules.save_template(doc, doc.scenes[-1].id)
     doc = rules.create_scene(doc, "template", doc.templates[0].id)
@@ -161,13 +150,13 @@ def test_a_scene_mode_can_be_set_or_cleared_and_only_on_that_scene():
         rules.set_scene_mode(doc, "nope", "fan")
 
 
-def test_a_studio_saved_before_scenes_had_a_mode_takes_the_template_modes():
+def test_a_studio_saved_before_scenes_had_a_mode_follows_the_one_commentary():
     raw = default_studio().model_dump()
     for scene in raw["scenes"]:
         del scene["mode"]
     raw["scenes"][1]["template"] = None
     cleaned = Studio.model_validate(rules.sanitize_raw(raw))
-    assert [s.mode for s in cleaned.scenes] == [None, None, "analyst", None, None]
+    assert [s.mode for s in cleaned.scenes] == [None, None, None, None, None]
     kept = default_studio().model_dump()
     kept["scenes"][2]["mode"] = None
     assert Studio.model_validate(rules.sanitize_raw(kept)).scenes[2].mode is None
@@ -630,7 +619,7 @@ def test_ids_have_a_length_limit():
         element(id="x" * 65)
 
 
-def test_a_cameras_element_keeps_only_its_name_tags_switch():
+def test_a_cameras_element_keeps_its_name_tags_and_a_circle():
     made = rules.normalize_element(
         SceneElement(
             id="c",
@@ -645,8 +634,41 @@ def test_a_cameras_element_keeps_only_its_name_tags_switch():
         )
     )
     assert made.props == {"names": False}
+    circled = made.model_copy(update={"props": {"shape": "circle", "junk": True}})
+    assert rules.normalize_element(circled).props == {"names": True, "shape": "circle"}
     plain = made.model_copy(update={"props": {}})
     assert rules.normalize_element(plain).props == {"names": True}
+
+
+def test_a_scene_background_keeps_its_theme_picture_and_opacity():
+    plate = rules.normalize_element(
+        element(
+            id="bg",
+            type="image",
+            x=0,
+            y=0,
+            width=1920,
+            height=1080,
+            props={
+                "role": "background",
+                "theme": "super-league",
+                "opacity": 0.4,
+                "fit": "cover",
+                "image_id": "abc.png",
+                "junk": 1,
+            },
+        )
+    )
+    assert plate.props == {
+        "image_id": "abc.png",
+        "fit": "cover",
+        "role": "background",
+        "theme": "super-league",
+        "opacity": 0.4,
+    }
+    unknown = rules.normalize_element(element(id="bg", type="image", props={"role": "background", "theme": "crest", "opacity": 5}))
+    assert unknown.props["theme"] == "night"
+    assert unknown.props["opacity"] == 1
 
 
 def test_the_interview_template_puts_the_cameras_first_and_new_studios_start_without_it():
@@ -724,7 +746,7 @@ def test_the_3d_pitch_template_fills_the_frame_with_the_pitch_under_the_scoreboa
 def test_the_extra_templates_are_offered_but_a_new_studio_does_not_start_with_them():
     doc = rules.create_scene(default_studio(), "builtin", FAN_ZONE)
     made = doc.scenes[-1]
-    assert (made.name, made.mode) == (FAN_ZONE, "fan")
+    assert (made.name, made.mode) == (FAN_ZONE, None)
     assert {e.type for e in made.elements} >= {"comments", "poll", "superchat", "spotlight"}
     assert MATCH_INTELLIGENCE not in [s.template for s in default_studio().scenes]
 

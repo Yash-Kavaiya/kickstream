@@ -9,7 +9,7 @@ import { SceneStrip } from "./SceneStrip";
 function setup(doc: Studio = studio(), editingId: string | null = null) {
   const data: ProgramData = { match: EMPTY, studio: doc, now: 1000, language: "en" };
   const calls = {
-    onActivate: vi.fn(), onEdit: vi.fn(), onRename: vi.fn(), onMode: vi.fn(), onCreate: vi.fn(),
+    onActivate: vi.fn(), onEdit: vi.fn(), onRename: vi.fn(), onCreate: vi.fn(),
     onDelete: vi.fn(), onSaveTemplate: vi.fn(), onDeleteTemplate: vi.fn(),
   };
   renderUi(<SceneStrip studio={doc} data={data} editingId={editingId} {...calls} />);
@@ -89,22 +89,12 @@ test("renaming saves the trimmed name and cancel closes without saving", () => {
   expect(calls.onRename).toHaveBeenCalledTimes(1);
 });
 
-test("the commentary choice reflects the scene and sets its mode", () => {
-  const calls = setup(studio({ scenes: [scene(), scene({ id: "s2", name: "Break", template: "Break", mode: "analyst" })] }));
+test("a scene is marked Commentary and its menu does not offer a second voice", () => {
+  setup(studio({ scenes: [scene(), scene({ id: "s2", name: "Break", template: "Break", mode: "analyst" })] }));
+  expect(strip().getAllByText("Commentary")).toHaveLength(2);
   openMenu("Break");
-  expect(screen.getByRole("menuitemradio", { name: "Analyst commentary" }).getAttribute("aria-checked")).toBe("true");
-  fireEvent.click(screen.getByRole("menuitemradio", { name: "Fan commentary" }));
-  expect(calls.onMode).toHaveBeenCalledWith("s2", "fan");
-
-  openMenu("Break");
-  fireEvent.click(screen.getByRole("menuitemradio", { name: "Studio default commentary" }));
-  expect(calls.onMode).toHaveBeenLastCalledWith("s2", null);
-});
-
-test("a scene with no commentary of its own follows the studio default", () => {
-  setup();
-  openMenu("Live match");
-  expect(screen.getByRole("menuitemradio", { name: "Studio default commentary" }).getAttribute("aria-checked")).toBe("true");
+  expect(screen.queryByRole("menuitemradio", { name: "Fan commentary" })).toBeNull();
+  expect(screen.queryByRole("menuitemradio", { name: "Analyst commentary" })).toBeNull();
 });
 
 test("adding a scene from a built-in template", () => {
@@ -150,7 +140,7 @@ test("a thumbnail whose widgets have buttons of their own puts no button inside 
   const doc = studio({ scenes: [scene({ elements: [element({ type: "timeline", props: {} })] })], active_scene_id: "other" });
   const data: ProgramData = { match: { ...EMPTY, moments: [{ ...moment(), highlighted: false }] }, studio: doc, now: 1000, language: "en" };
   const onActivate = vi.fn();
-  renderUi(<SceneStrip studio={doc} data={data} editingId={null} onActivate={onActivate} onEdit={vi.fn()} onRename={vi.fn()} onMode={vi.fn()}
+  renderUi(<SceneStrip studio={doc} data={data} editingId={null} onActivate={onActivate} onEdit={vi.fn()} onRename={vi.fn()}
     onCreate={vi.fn()} onDelete={vi.fn()} onSaveTemplate={vi.fn()} onDeleteTemplate={vi.fn()} />);
   const tile = strip().getByRole("button", { name: "Switch to Live match" });
   expect(tile.closest("li")!.querySelector("[data-testid='element-timeline'] button")).not.toBeNull();

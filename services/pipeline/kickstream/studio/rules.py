@@ -27,7 +27,6 @@ from kickstream.studio.templates import (
     CANVAS_W,
     LIVE_MATCH,
     STARTING_SOON,
-    TEMPLATE_MODES,
     builtin_templates,
 )
 
@@ -92,6 +91,25 @@ def _choice_prop(props: dict, key: str, default: str, choices: tuple[str, ...]) 
     return value if value in choices else default
 
 
+# Original broadcast plates. Not a league crest.
+_PLATES = ("night", "premier", "sun", "bundesliga", "serie", "navy", "european", "super-league", "matchday")
+
+
+def _image_props(props: dict) -> dict:
+    image_id = props.get("image_id")
+    image_id = image_id if isinstance(image_id, str) and image_id else None
+    if props.get("role") != "background":
+        return {"image_id": image_id, "fit": _choice_prop(props, "fit", "contain", ("contain", "cover"))}
+    theme = props.get("theme")
+    return {
+        "image_id": image_id,
+        "fit": _choice_prop(props, "fit", "cover", ("contain", "cover")),
+        "role": "background",
+        "theme": theme if theme in _PLATES else "night",
+        "opacity": _number_prop(props, "opacity", 1, 0, 1),
+    }
+
+
 def _normalize_props(type_: str, props: dict) -> dict:
     """Keep only the properties this element type uses, each within its range."""
     if type_ == "pitch":
@@ -109,13 +127,12 @@ def _normalize_props(type_: str, props: dict) -> dict:
             "align": _choice_prop(props, "align", "center", ("left", "center", "right")),
         }
     if type_ == "image":
-        image_id = props.get("image_id")
-        return {
-            "image_id": image_id if isinstance(image_id, str) else None,
-            "fit": _choice_prop(props, "fit", "contain", ("contain", "cover")),
-        }
+        return _image_props(props)
     if type_ == "cameras":
-        return {"names": props.get("names", True) is not False}
+        kept = {"names": props.get("names", True) is not False}
+        if props.get("shape") == "circle":
+            kept["shape"] = "circle"
+        return kept
     if type_ == "chart":
         return {"metric": _choice_prop(props, "metric", "overview", CHART_METRICS)}
     if type_ == "graph":
@@ -431,13 +448,12 @@ def expire(doc: Studio, now: float) -> tuple[Studio, list[str]]:
 def sanitize_raw(raw: dict) -> dict:
     """Drop elements of a type this version does not know, so a file from another version loads.
 
-    A scene saved before scenes had a mode takes its built-in template's mode.
+    A scene saved with no mode follows the studio's one commentary.
     """
 
     def clean(scene: dict) -> dict:
         elements = [element for element in scene.get("elements", []) if element.get("type") in ELEMENT_TYPES]
-        mode = scene["mode"] if "mode" in scene else TEMPLATE_MODES.get(scene.get("template"))
-        return {**scene, "mode": mode, "elements": elements}
+        return {**scene, "mode": scene.get("mode"), "elements": elements}
 
     return {
         **raw,

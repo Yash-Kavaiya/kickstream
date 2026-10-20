@@ -132,17 +132,16 @@ test("switching to a scene activates it", async () => {
   await waitFor(() => expect(last(server)).toMatchObject({ url: "/api/studio/scenes/s2/activate", method: "POST" }));
 });
 
-test("each scene shows whose commentary it carries, and the edited scene's can be changed", async () => {
-  const server = await opened(studio({ scenes: [scene({ mode: "analyst" }), scene({ id: "s2", name: "Break", template: "Break" })] }));
+test("every scene shows the one commentary, and a scene's own mode does not change the feed", async () => {
+  await opened(studio({ scenes: [scene({ mode: "analyst" }), scene({ id: "s2", name: "Break", template: "Break" })] }));
   const scenes = region("Scenes");
-  expect(scenes.getByText("Analyst")).toBeTruthy();
-  expect(scenes.getByText("Fan (default)")).toBeTruthy();
-  await waitFor(() => expect(stream("/api/matches/").url).toContain("mode=analyst"));
+  expect(scenes.getAllByText("Commentary")).toHaveLength(2);
+  await waitFor(() => expect(stream("/api/matches/").url).toContain("mode=fan"));
+  fireEvent.click(screen.getByRole("button", { name: "Scene menu for Live match" }));
+  expect(screen.queryByRole("menuitemradio", { name: "Fan commentary" })).toBeNull();
+  expect(screen.queryByRole("menuitemradio", { name: "Analyst commentary" })).toBeNull();
   openEditLayout();
-  fireEvent.change(editLayout().getByLabelText("Commentary"), { target: { value: "fan" } });
-  await waitFor(() => expect(last(server)).toMatchObject({ url: "/api/studio/scenes/s1/mode", method: "PUT", body: { mode: "fan" } }));
-  fireEvent.change(editLayout().getByLabelText("Commentary"), { target: { value: "" } });
-  await waitFor(() => expect(last(server).body).toEqual({ mode: null }));
+  expect(editLayout().queryByLabelText("Commentary")).toBeNull();
 });
 
 test("scenes can be added from a template, duplicated, saved as a template and deleted", async () => {
@@ -322,13 +321,12 @@ test("a running break shows the time left and can be ended", async () => {
   await waitFor(() => expect(last(server)).toMatchObject({ url: "/api/studio/countdown", method: "DELETE" }));
 });
 
-test("default commentary, language and the automatic switches are saved as they change", async () => {
+test("language and the automatic switches are saved as they change", async () => {
   const server = await opened();
   openTool("Settings");
+  expect(screen.queryByLabelText("Default commentary")).toBeNull();
   fireEvent.change(screen.getByLabelText("Program language"), { target: { value: "hi" } });
   await waitFor(() => expect(last(server).body).toMatchObject({ language: "hi", mode: "fan" }));
-  fireEvent.change(screen.getByLabelText("Default commentary"), { target: { value: "analyst" } });
-  await waitFor(() => expect(last(server).body).toMatchObject({ mode: "analyst" }));
   fireEvent.click(screen.getByRole("switch", { name: "Take a break automatically at half-time" }));
   await waitFor(() => expect(last(server).body).toMatchObject({ auto_half_time_break: true }));
 });
