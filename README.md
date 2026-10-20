@@ -21,7 +21,7 @@ pnpm dev:api     # pipeline on http://127.0.0.1:8000
 pnpm dev:web     # web app on http://127.0.0.1:5173
 ```
 
-Open `http://127.0.0.1:5173`, the streaming home, press **Create a broadcast**, then **Start match** and **Go live**. A 90-minute match plays in about three minutes. On the **Match data** page (`/match`), add `?speed=120` to the URL to play it faster (1 to 600).
+Open `http://127.0.0.1:5173`, the streaming home, press **Create a broadcast**, then **Start match** and **Go live**. A 90-minute match plays in about three minutes. On the **Analyst teams** page (`/match`), add `?speed=120` to the URL to play it faster (1 to 600).
 
 | Page | Use |
 |---|---|
@@ -29,14 +29,15 @@ Open `http://127.0.0.1:5173`, the streaming home, press **Create a broadcast**, 
 | `/broadcasts/{id}` | One broadcast: its stats, recording player, key moments, sessions and reels |
 | `/broadcasts/{id}/studio` | That broadcast's studio: build and switch scenes, see the program as it goes out, run banners, and go live with it |
 | `/studio` | Opens the studio of the broadcast on air, or else of the current one; with neither, asks you to choose or create one |
-| `/match` | Match intelligence: the seven match agents and what each has found, with the match dashboard and overlay JSON as two of its views |
+| `/match` | **Analyst teams**: the seven match agents, working as three teams of analysts (Match Reading, Forecast and Story), and what each has found, with the match view and overlay JSON as two of its views |
+| `/dashboard` | **Unified analytics**: the score, odds, expected goals and momentum, each team's and agent's work, the best players, the audience, the broadcasts and auto live, on one live page. For the studio's users only |
 | `/guest/{secret}` | A guest's page, opened from an invite link: check the camera and microphone, give a name, and join |
 
 Every streamer page has the same top bar. While the stream is on, its right side shows how long you have been live and the status of each destination. The sun and moon button switches between light and dark themes.
 
 ## Real match data
 
-Kickstream is built around synthetic match data: the simulated match is what it plays by default, and the only data a deployment made with `deploy/` offers. As an optional extension for local use, you can instead play a real one from three free sources. Choose it in the studio's **Match** tool, or with **Choose match** on the **Match data** page.
+Kickstream is built around synthetic match data: the simulated match is what it plays by default, and the only data a deployment made with `deploy/` offers. As an optional extension for local use, you can instead play a real one from three free sources. Choose it in the studio's **Match** tool, or with **Choose match** on the **Analyst teams** page.
 
 | Source | Kind | What it gives | Key | Free limits | Credit |
 |---|---|---|---|---|---|
@@ -60,12 +61,12 @@ To get and set the API-Football key:
 
 In the **Match** tool, choose a source. For StatsBomb, choose a competition and season, then a match; for a live source, today's fixtures are listed with their state, and can be filtered by competition. The simulated match plays at 30× by default and StatsBomb replays in real time; both can be played at real time, 2×, 5×, 10× or 30×. Live matches play as they happen. **Start** plays the match now and **Stop match** ends it. A failed start leaves the match that is playing as it was and shows the source's message.
 
-Whatever you choose is also the **next match**: when a studio countdown ends, it starts, as long as automatic start is on in Settings. The tool shows it under **Starts when the countdown ends**, with **Clear**. With no choice, the simulated match starts as before. If the chosen match cannot start then, the simulated match plays instead and the studio shows why. On the **Match data** page, the header shows the competition and the credit, and the **Choose match** dialog is translated like the rest of the page.
+Whatever you choose is also the **next match**: when a studio countdown ends, it starts, as long as automatic start is on in Settings. The tool shows it under **Starts when the countdown ends**, with **Clear**. With no choice, the simulated match starts as before. If the chosen match cannot start then, the simulated match plays instead and the studio shows why. On the **Analyst teams** page, the header shows the competition and the credit, and the **Choose match** dialog is translated like the rest of the page.
 
 **Live data has key events only.** API-Football and OpenLigaDB send the score, goals, cards and substitutions, and API-Football some team stats, but no ball positions. With live data, the score, timeline, events, stats the source measured, narration and banners work as usual; what would need positions shows **Not available with live data** instead of invented numbers:
 
 - On scenes: the pitch, the 3D pitch, replays, the momentum and xG graphs, the next-action prediction and the tactics chart.
-- On the **Match data** page: the pitch with its pressure map, the 3D pitch, the tactics card and where the danger has come from. The Tactical Analyst and the Visualization Agent sit out.
+- On the **Analyst teams** page: the pitch with its pressure map, the 3D pitch, the tactics card and where the danger has come from. The Tactical Analyst and the Visualization Agent sit out.
 - **Ask Copilot** quotes only the stats the source measured, and a tactics or pitch question is answered by saying the feed has no positions.
 
 | Variable | Meaning |
@@ -134,11 +135,11 @@ The studio is laid out around the picture, as in StreamYard: what goes out is al
 
 Scenes, settings and uploaded images are kept in `.data/` (set `KICKSTREAM_DATA_DIR` to move it). The program uses the on-air scene's commentary, or the **Default commentary** and language from the Settings tool.
 
-On the **Match data** page (`/match`), **Preferences** sets the wording (**Fan** or **Analyst**, Analyst by default), the language and a favourite club and player; they are kept in the browser. Following a player, from Preferences or the player card, keeps their card, the 3D pitch following them and their key moments and highlights above every view for the rest of the match, until **Stop following**. The studio's own default commentary stays in its Settings tool.
+On the **Analyst teams** page (`/match`), **Preferences** sets the wording (**Fan** or **Analyst**, Analyst by default), the language and a favourite club and player; they are kept in the browser. Following a player, from Preferences or the player card, keeps their card, the 3D pitch following them and their key moments and highlights above every view for the rest of the match, until **Stop following**. The studio's own default commentary stays in its Settings tool.
 
 ## Match agents
 
-Seven agents work on every match. Each is declared the way a Copilot Studio agent is, with instructions, triggers, tools and the agents it is connected to, and the `/match` page shows each one that way, with its live output and its runs.
+Seven agents work on every match, in three teams of analysts: the **Match Reading Team** (Event Interpreter, Tactical Analyst, Player Tracking Agent), the **Forecast Team** (Prediction Agent, Explainability Agent) and the **Story Team** (Visualization Agent, Highlights Agent). Each is declared the way a Copilot Studio agent is, with instructions, triggers, tools and the agents it is connected to, and the `/match` page shows each one that way, with its live output and its runs.
 
 | Agent | What it does |
 |---|---|

@@ -115,6 +115,24 @@ test("the page opens on the overview: the flow, and what each agent has found", 
   expect(screen.getAllByTestId("agent-run")).toHaveLength(1);
 });
 
+test("the agents work as teams of analysts: the rail lists them by team, and the overview shows each team", async () => {
+  serve();
+  await opened();
+  const labels = Array.from(screen.getByRole("navigation", { name: "Match intelligence" }).children).map((node) => node.textContent ?? "");
+  expect(labels.slice(labels.indexOf("Overview") + 1, labels.indexOf("Highlights Agent") + 1)).toEqual([
+    "Match Reading Team", "Event Interpreter", "Tactical Analyst", "Player Tracking Agent",
+    "Forecast Team", "Prediction Agent", "Explainability Agent",
+    "Story Team", "Visualization Agent", "Highlights Agent",
+  ]);
+  const forecast = within(screen.getByTestId("team-forecast"));
+  expect(forecast.getByText("1 recent run, the last at 12'")).toBeTruthy();
+  expect(within(screen.getByTestId("team-story")).getByText("No work yet")).toBeTruthy();
+
+  fireEvent.click(forecast.getByRole("button", { name: "Open Prediction Agent: Working" }));
+  expect(rail().getByRole("button", { name: "Prediction Agent" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByTestId("agent-team").textContent).toBe("Part of the Forecast Team");
+});
+
 test("agent cards that need positions say so on a key-events match", async () => {
   serve();
   await opened({ detail: "key_events", source: "openligadb" });

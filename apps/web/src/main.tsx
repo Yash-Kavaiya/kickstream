@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { AutoLiveOutput, AutoLivePage } from "./autolive/AutoLivePage";
 import { BroadcastPage } from "./broadcasts/BroadcastPage";
 import { StudioEntry } from "./broadcasts/StudioEntry";
+import { DashboardPage } from "./dashboard/DashboardPage";
 import { HomePage } from "./home/HomePage";
 import { MatchPage } from "./MatchPage";
 import { GuestPage } from "./people/GuestPage";
@@ -13,7 +14,7 @@ import { useAppTheme } from "./theme";
 
 /**
  * The pages: Home lists the broadcasts, each broadcast has its page and its studio, and the studio's clean output
- * and the match data stand beside them, as does a guest's page, opened from an invite link.
+ * the analyst teams and the unified analytics dashboard stand beside them, as does a guest's page, opened from an invite link.
  */
 function Page() {
   const path = window.location.pathname.replace(/\/+$/, "");
@@ -27,6 +28,7 @@ function Page() {
   if (path === "/studio") return isOutputView(window.location.search) ? <ProgramPage /> : <StudioEntry />;
   if (path === "/live") return isOutputView(window.location.search) ? <AutoLiveOutput /> : <AutoLivePage />;
   if (path === "/match") return <MatchPage />;
+  if (path === "/dashboard") return <DashboardPage />;
   return <HomePage />;
 }
 

@@ -8,6 +8,7 @@ import { useCanUseStudio } from "../shell/viewer";
 import type { MatchData } from "../stream/store";
 import { AgentFlow } from "./AgentFlow";
 import { type AgentId, agentState, type AgentState, downstream, runsOf } from "./api";
+import { teamOf, teamRuns, teamsIn, unteamed } from "./teams";
 import {
   ActivityList, AGENT_ICONS, Card, ExplanationsCard, HighlightsCard, PitchCard, PlayerCard, PlaysCard, PredictionCard, TacticsCard, TheirMomentsCard,
 } from "./cards";
@@ -70,6 +71,11 @@ const useStyles = makeStyles({
   code: { fontFamily: tokens.fontFamilyMonospace, fontSize: tokens.fontSizeBase200 },
   instructions: { whiteSpace: "pre-wrap", lineHeight: tokens.lineHeightBase400 },
   activity: { maxHeight: "560px", overflowY: "auto" },
+  teams: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: tokens.spacingHorizontalM },
+  team: {
+    display: "flex", flexDirection: "column", gap: tokens.spacingVerticalS, padding: tokens.spacingHorizontalM,
+    borderRadius: tokens.borderRadiusLarge, backgroundColor: tokens.colorNeutralBackground3,
+  },
 });
 
 interface RailProps {
@@ -95,8 +101,12 @@ export function AgentRail({ catalog, match, view, language, onView }: RailProps)
     <nav className={mergeClasses(styles.rail, "ks-motion")} aria-label="Match intelligence">
       <MotionStyles />
       {item("overview", "Overview", <FlowRegular />)}
-      <Text size={200} className={styles.railLabel}>Agents</Text>
-      {catalog?.agents.map((agent) => item(agent.id, agent.name, AGENT_ICONS[agent.id], agentState(agent, match)))}
+      {catalog && teamsIn(catalog).map(({ team, agents }) => [
+        <Text key={`team-${team.id}`} size={200} className={styles.railLabel}>{team.name}</Text>,
+        ...agents.map((agent) => item(agent.id, agent.name, AGENT_ICONS[agent.id], agentState(agent, match))),
+      ])}
+      {catalog && unteamed(catalog).length > 0 && <Text size={200} className={styles.railLabel}>Other agents</Text>}
+      {catalog && unteamed(catalog).map((agent) => item(agent.id, agent.name, AGENT_ICONS[agent.id], agentState(agent, match)))}
       <Text size={200} className={styles.railLabel}>Match</Text>
       {item("match", t(language, "matchTab"), <SportSoccerRegular />)}
       {item("overlay", t(language, "overlayTab"), <CodeRegular />)}
@@ -146,7 +156,41 @@ export function FollowedPlayer({ match, language, playerId, view, onFollow }: Fo
   );
 }
 
-/** Every agent at once: the flow, then what each has most recently found. */
+/** The teams of analyst agents: what each team does, its agents and how they are doing, and its work so far. */
+export function TeamsCard({ catalog, match, onView }: { catalog: AgentCatalog; match: MatchData; onView(view: StudioView): void }) {
+  const styles = useStyles();
+  return (
+    <Card title="Teams of analyst agents" testId="analyst-teams" extra={<Text size={200} className={styles.muted}>{catalog.agents.length} agents in {teamsIn(catalog).length} teams</Text>}>
+      <div className={styles.teams}>
+        {teamsIn(catalog).map(({ team, agents }) => {
+          const runs = teamRuns(match.runs, team);
+          return (
+            <section key={team.id} className={styles.team} aria-label={team.name} data-testid={`team-${team.id}`}>
+              <Text weight="semibold">{team.name}</Text>
+              <Text size={200} className={styles.muted}>{team.purpose}</Text>
+              <div className={styles.chips}>
+                {agents.map((agent) => {
+                  const state = agentState(agent, match);
+                  return (
+                    <button key={agent.id} type="button" className={styles.chip} aria-label={`Open ${agent.name}: ${STATE_TEXT[state]}`} onClick={() => onView(agent.id)}>
+                      {AGENT_ICONS[agent.id]}{agent.name}
+                      <span className={mergeClasses(styles.dot, state === "working" && styles.working, state === "idle" && styles.idle)} title={STATE_TEXT[state]} aria-hidden />
+                    </button>
+                  );
+                })}
+              </div>
+              <Text size={200} className={styles.muted}>
+                {runs.length === 0 ? "No work yet" : `${runs.length} recent ${runs.length === 1 ? "run" : "runs"}, the last at ${runs[0].minute}'`}
+              </Text>
+            </section>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/** Every agent at once: the teams, the flow, then what each has most recently found. */
 export function AgentOverview({ catalog, match, language, playerId, onFollow, onView, problem }: StudioProps) {
   const styles = useStyles();
   // A followed player's card and pitch are kept above the page instead.
@@ -158,6 +202,7 @@ export function AgentOverview({ catalog, match, language, playerId, onFollow, on
           <MessageBarBody>{problem}</MessageBarBody>
         </MessageBar>
       )}
+      {catalog && <TeamsCard catalog={catalog} match={match} onView={onView} />}
       {catalog && (
         <Card title="Agent flow" extra={<Text size={200} className={styles.muted}>Select an agent to open it</Text>}>
           <AgentFlow catalog={catalog} match={match} selected={null} onSelect={onView} />
@@ -221,6 +266,7 @@ export function AgentDetail({ agent, catalog, match, language, playerId, onFollo
         <div className={styles.heroText}>
           <Text as="h2" size={600} weight="semibold">{agent.name}</Text>
           <Text className={styles.muted}>{agent.description}</Text>
+          {teamOf(agent.id) && <Text size={200} className={styles.muted} data-testid="agent-team">Part of the {teamOf(agent.id)!.name}</Text>}
         </div>
         <Badge appearance="tint" color={state === "working" ? "success" : state === "off" ? "subtle" : "informative"} data-testid="agent-state">{STATE_TEXT[state]}</Badge>
         {agent.id === "explainability" && <Badge appearance="outline">{catalog.model ? "Written by a model" : "Written from a script"}</Badge>}

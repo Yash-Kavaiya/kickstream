@@ -13,7 +13,8 @@ it("shows a viewer who is not signed in only auto live and the match", async () 
   await waitFor(() => expect(screen.queryByRole("link", { name: /Studio/ })).toBeNull());
   expect(screen.queryByRole("link", { name: /^Home/ })).toBeNull();
   expect(screen.getByRole("link", { name: /Auto live/ })).toBeTruthy();
-  expect(screen.getByRole("link", { name: /Match data/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Analyst teams/ })).toBeTruthy();
+  expect(screen.queryByRole("link", { name: /Dashboard/ })).toBeNull();
 });
 
 it("shows the studio's users every page", async () => {
@@ -21,6 +22,7 @@ it("shows the studio's users every page", async () => {
   renderUi(<AppNav current="match" />);
   expect(await canUseStudio()).toBe(true);
   expect(screen.getByRole("link", { name: /Studio/ })).toBeTruthy();
+  expect(screen.getByRole("link", { name: /Dashboard/ }).getAttribute("href")).toBe("/dashboard");
 });
 
 it("never hides the studio when the server cannot say", async () => {

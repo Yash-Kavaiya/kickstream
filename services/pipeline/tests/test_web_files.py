@@ -37,7 +37,7 @@ def test_the_pipeline_serves_the_built_web_app_with_every_page_falling_back_to_i
     with client_for(tmp_path, web) as client:
         assert client.get("/").text == INDEX
         assert client.get("/assets/app.js").text == "console.log('app')"
-        for page in ("/studio", "/broadcasts/b1/studio", "/guest/s3cret", "/match"):
+        for page in ("/studio", "/broadcasts/b1/studio", "/guest/s3cret", "/match", "/dashboard"):
             answer = client.get(page)
             assert answer.status_code == 200 and answer.text == INDEX
             assert answer.headers["cache-control"] == "no-cache"
@@ -96,7 +96,7 @@ def test_with_the_public_view_anyone_can_watch_live_and_match_but_change_nothing
         assert client.get("/api/studio/output", headers=anyone).status_code == 404
         assert client.put("/api/studio/settings", json={}, headers=anyone).status_code == 404
 
-        for page in ("/", "/studio", "/broadcasts/b1/studio"):
+        for page in ("/", "/studio", "/dashboard", "/broadcasts/b1/studio"):
             answer = client.get(page, headers=anyone, follow_redirects=False)
             assert answer.status_code == 302
             assert answer.headers["location"] == f"/.auth/login/aad?post_login_redirect_uri={page}"

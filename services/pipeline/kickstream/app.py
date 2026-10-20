@@ -220,7 +220,7 @@ _PUBLIC_READS = re.compile(
 )
 # Ask Copilot too: its model calls have a budget per match, and without one it only reads.
 _PUBLIC_ASKS = frozenset({"/api/copilot/ask"})
-_STUDIO_PAGES = re.compile(r"/|/studio|/broadcasts(/.*)?")
+_STUDIO_PAGES = re.compile(r"/|/studio|/dashboard|/broadcasts(/.*)?")
 
 
 class PublicHostGate:

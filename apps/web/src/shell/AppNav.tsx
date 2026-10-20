@@ -1,5 +1,5 @@
 import { Button, makeStyles, mergeClasses, Text, tokens, Tooltip } from "@fluentui/react-components";
-import { BotSparkleRegular, DataTrendingRegular, HomeRegular, VideoClipMultipleRegular, WeatherMoonRegular, WeatherSunnyRegular } from "@fluentui/react-icons";
+import { BoardRegular, BotSparkleRegular, HomeRegular, PeopleTeamRegular, VideoClipMultipleRegular, WeatherMoonRegular, WeatherSunnyRegular } from "@fluentui/react-icons";
 import type { ReactNode } from "react";
 import type { Output } from "../contracts";
 import { AskCopilot } from "../copilot/AskCopilot";
@@ -8,13 +8,14 @@ import { useIsDark, useThemeChoice } from "../theme";
 import { BrandLogo } from "./BrandLogo";
 import { useCanUseStudio } from "./viewer";
 
-export type NavPage = "home" | "studio" | "live" | "match";
+export type NavPage = "home" | "studio" | "live" | "match" | "dashboard";
 
 const LINKS: { page: NavPage; href: string; label: string; icon: ReactNode; studio?: true }[] = [
   { page: "home", href: "/", label: "Home", icon: <HomeRegular />, studio: true },
   { page: "studio", href: "/studio", label: "Studio", icon: <VideoClipMultipleRegular />, studio: true },
   { page: "live", href: "/live", label: "Auto live", icon: <BotSparkleRegular /> },
-  { page: "match", href: "/match", label: "Match data", icon: <DataTrendingRegular /> },
+  { page: "match", href: "/match", label: "Analyst teams", icon: <PeopleTeamRegular /> },
+  { page: "dashboard", href: "/dashboard", label: "Dashboard", icon: <BoardRegular />, studio: true },
 ];
 
 const useStyles = makeStyles({
