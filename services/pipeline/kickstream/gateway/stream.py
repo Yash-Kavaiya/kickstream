@@ -25,7 +25,9 @@ async def stream_items(
     """
     feed = broadcaster.subscribe(match_id)
     try:
-        if after_id > len(store.read(match_id)):
+        logged = store.read(match_id)
+        highest = logged[-1].id if logged else 0
+        if after_id > highest:
             # An ID this log has not reached cannot have come from it. Replay everything
             # rather than stay silent until the log catches up.
             after_id = 0

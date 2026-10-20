@@ -25,8 +25,9 @@ class InMemoryMatchStore:
     ) -> LogItem:
         make_room(self._logs, match_id, self._remembered)
         log = self._logs.setdefault(match_id, [])
+        # One past the highest id, not the length: a gap must not hand that id out again.
         item = LogItem(
-            id=len(log) + 1,
+            id=max((kept.id for kept in log), default=0) + 1,
             match_id=match_id,
             type=type,
             minute=minute,
@@ -39,8 +40,13 @@ class InMemoryMatchStore:
         log.append(item)
         return item
 
+    def restore(self, match_id: str, items: list[LogItem]) -> None:
+        """Put a match's log back as it was stored, keeping each item's id."""
+        make_room(self._logs, match_id, self._remembered)
+        self._logs[match_id] = sorted(items, key=lambda item: item.id)
+
     def read(self, match_id: str, after_id: int = 0) -> list[LogItem]:
-        return self._logs.get(match_id, [])[max(0, after_id) :]
+        return [item for item in self._logs.get(match_id, []) if item.id > after_id]
 
     def has(self, match_id: str) -> bool:
         return match_id in self._logs

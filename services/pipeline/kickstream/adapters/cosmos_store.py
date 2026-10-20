@@ -64,6 +64,10 @@ class CosmosMatchStore:
         self._memory = InMemoryMatchStore(remembered)
         self._absent: set[str] = set()
         self._waiting: queue.Queue = queue.Queue(max_waiting)
+        # Items still queued for Cosmos. A match dropped from memory is rebuilt from these as well,
+        # so a slow write is not lost. The queue's own limit is the bound.
+        self._unflushed: dict[str, dict[int, LogItem]] = {}
+        self._lock = threading.Lock()
         self.failures = 0
         self._writer = threading.Thread(target=self._write, name="cosmos-match-log", daemon=True)
         self._writer.start()
@@ -91,9 +95,12 @@ class CosmosMatchStore:
             team_id=team_id,
             player_id=player_id,
         )
+        # Remembered before it is queued, so the writer cannot finish it untracked.
+        self._remember(item)
         try:
             self._waiting.put_nowait(item)
         except queue.Full:
+            self._forget(item)
             self.failures += 1
             log.warning(
                 "the Cosmos DB writer is behind; %s item %s is kept in memory only", match_id, item.id
@@ -119,6 +126,9 @@ class CosmosMatchStore:
     def _load(self, match_id: str) -> None:
         if self._memory.has(match_id) or match_id in self._absent:
             return
+        # Taken before the query, so an item written through while it runs is still here or already
+        # in the answer: either way it comes back with the id it was given.
+        pending = self._pending(match_id)
         try:
             documents = list(
                 self._container.query_items(
@@ -130,21 +140,30 @@ class CosmosMatchStore:
         except AzureError as exc:
             log.warning("could not read match %s from Cosmos DB: %s", match_id, exc)
             return
-        if not documents:
+        by_id = {item.id: item for item in (from_document(document) for document in documents)}
+        for item in pending:
+            by_id.setdefault(item.id, item)
+        if not by_id:
             self._absent.add(match_id)
             return
-        for document in documents:
-            item = from_document(document)
-            self._memory.append(
-                item.match_id,
-                item.type,
-                item.minute,
-                item.payload,
-                language=item.language,
-                mode=item.mode,
-                team_id=item.team_id,
-                player_id=item.player_id,
-            )
+        self._memory.restore(match_id, list(by_id.values()))
+
+    def _remember(self, item: LogItem) -> None:
+        with self._lock:
+            self._unflushed.setdefault(item.match_id, {})[item.id] = item
+
+    def _forget(self, item: LogItem) -> None:
+        with self._lock:
+            pending = self._unflushed.get(item.match_id)
+            if pending is None:
+                return
+            pending.pop(item.id, None)
+            if not pending:
+                del self._unflushed[item.match_id]
+
+    def _pending(self, match_id: str) -> list[LogItem]:
+        with self._lock:
+            return list(self._unflushed.get(match_id, {}).values())
 
     def _write(self) -> None:
         while True:
@@ -157,4 +176,6 @@ class CosmosMatchStore:
                 self.failures += 1
                 log.warning("could not write %s item %s to Cosmos DB: %s", item.match_id, item.id, exc)
             finally:
+                if item is not _STOP:
+                    self._forget(item)
                 self._waiting.task_done()

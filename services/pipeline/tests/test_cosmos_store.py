@@ -73,6 +73,38 @@ def test_a_match_no_longer_in_memory_is_read_back_from_cosmos_db_with_its_payloa
     restarted.close()
 
 
+def test_a_gap_left_in_cosmos_keeps_its_ids_when_the_match_is_read_back():
+    """A write that never landed must not make the next start reuse an id that Cosmos already has."""
+    container = FakeContainer()
+    writer = CosmosMatchStore(container)
+    for seq in (1, 2, 3):
+        writer.append("m-1", "match_event", seq, _event(seq))
+    writer.flush()
+    del container.documents["m-1:2"]
+    writer.close()
+
+    restarted = CosmosMatchStore(container)
+    assert [item.id for item in restarted.read("m-1")] == [1, 3]
+    assert restarted.read("m-1")[1].payload.id == "m-1-e3"
+    added = restarted.append("m-1", "match_event", 4, _event(4))
+    restarted.flush()
+    assert added.id == 4
+    assert container.documents["m-1:3"]["payload"]["id"] == "m-1-e3"
+    assert container.documents["m-1:4"]["payload"]["id"] == "m-1-e4"
+    restarted.close()
+
+
+def test_an_evicted_match_still_includes_an_item_waiting_to_be_written():
+    container = FakeContainer()
+    store = CosmosMatchStore(container, remembered=1)
+    store.append("m-1", "match_event", 1, _event(1), team_id="nb")
+    store.append("m-2", "match_event", 1, _event(1))  # the only remembered slot, so m-1 leaves memory
+    assert [item.id for item in store.read("m-1")] == [1]
+    assert store.read("m-1")[0].team_id == "nb"
+    store.flush()
+    store.close()
+
+
 def test_a_failed_write_is_counted_and_never_reaches_the_caller():
     container = FakeContainer(fail_writes=1)
     store = CosmosMatchStore(container)
