@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from "@testing-library/react"
 import type { Broadcasts, People, Studio } from "../contracts";
 import { useMatch } from "../stream/store";
 import {
-  broadcast, broadcasts, callSeat, destination, envelope, fanComment, FakeEventSource, FakeEventSourceCtor, fanZone, invitation, moment, narrative,
+  autoLive, autoLiveSettings, broadcast, broadcasts, callSeat, destination, envelope, fanComment, FakeEventSource, FakeEventSourceCtor, fanZone, invitation, moment, narrative,
   output, peopleDoc, scene, status, studio,
 } from "../test/fixtures";
 import { FakeRoomCall } from "../test/FakeRoomCall";
@@ -625,4 +625,20 @@ test("comments that arrive while the Comments tool is closed are counted on the 
   expect(comments().textContent).toBe("Comments");
   openTool("Comments");
   expect(comments().textContent).toBe("Comments");
+});
+
+test("auto live can be watched and switched from the studio, and the top bar opens it while it is on", async () => {
+  await opened();
+  push("/api/autolive/stream", autoLive({ settings: autoLiveSettings({ enabled: false }) }));
+  expect(region("Studio top bar").queryByRole("button", { name: /Auto live on/ })).toBeNull();
+  openTool("Auto live");
+  const tool = region("Auto live tool");
+  expect(tool.getByRole("img", { name: "Auto live preview" })).toBeTruthy();
+  expect(tool.getByRole("switch", { name: "Auto live" })).toBeTruthy();
+  expect(tool.getByRole("link", { name: "Open auto live" }).getAttribute("href")).toBe("/live");
+
+  fireEvent.click(within(screen.getByRole("region", { name: "Auto live tool" })).getByRole("button", { name: "Close tool" }));
+  push("/api/autolive/stream", autoLive({ revision: 2 }));
+  fireEvent.click(region("Studio top bar").getByRole("button", { name: /Auto live on/ }));
+  expect(region("Auto live tool").getByText("Auto live on")).toBeTruthy();
 });

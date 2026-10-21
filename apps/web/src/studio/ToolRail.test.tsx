@@ -7,7 +7,7 @@ const tool = (name: string) => within(screen.getByRole("navigation", { name: "To
 test("the rail offers Match first", () => {
   renderUi(<ToolRail tools={TOOLS} open={null} onOpen={() => {}} />);
   const names = within(screen.getByRole("navigation", { name: "Tools" })).getAllByRole("button").map((button) => button.getAttribute("aria-label"));
-  expect(names).toEqual(["Match", "Banners", "Comments", "Guests", "Replays", "Timer", "Stream", "Settings"]);
+  expect(names).toEqual(["Match", "Banners", "Comments", "Guests", "Replays", "Timer", "Stream", "Auto live", "Settings"]);
 });
 
 test("choosing a closed tool opens it", () => {

@@ -2,7 +2,7 @@ import {
   Badge, Button, Checkbox, Field, Input, makeStyles, MessageBar, MessageBarBody, Select, Slider, Switch, Text, tokens,
 } from "@fluentui/react-components";
 import {
-  BotSparkleRegular, ChatSparkleRegular, LiveRegular, NextRegular, PlayRegular, Speaker2Regular, SpeakerMuteRegular,
+  ArrowLeftRegular, BotSparkleRegular, ChatSparkleRegular, LiveRegular, NextRegular, PlayRegular, Speaker2Regular, SpeakerMuteRegular,
 } from "@fluentui/react-icons";
 import { useEffect, useMemo, useState } from "react";
 import type { AutoLive, AutoLiveSettings, FanZone, Output, ViewerProfile } from "../contracts";
@@ -20,14 +20,12 @@ import { useWindowSize } from "../studio/ProgramPage";
 import { useCaptureOffer } from "../studio/useCaptureOffer";
 import { useNow, useStudio } from "../studio/useStudio";
 import { AUTOLIVE_STREAM, nextScene, sayNow, saveAutoLiveSettings, showScene } from "./api";
+import { captionOf } from "./caption";
 import { COMMENTARY_LANGUAGES, commentaryLanguage, screenLanguage } from "./languages";
 import { AutoLiveStage } from "./AutoLiveStage";
 import type { SpeakerDeps } from "./speaker";
 import { useAutoLiveVoice } from "./useAutoLiveVoice";
 import { type StayAwakeOptions, useStayAwake } from "./useStayAwake";
-
-/** In silence, a commentary line stays on screen this long. */
-const CAPTION_S = 30;
 
 const SPEEDS = [1, 2, 5, 10, 30];
 
@@ -53,13 +51,6 @@ function useProgram({ eventSource, retryMs, pollMs }: CurrentMatchOptions) {
   const latest = match.narratives[0];
   const narrative = useMemo(() => (latest ? { id: latest.id, text: latest.text } : null), [latest]);
   return { doc, accept, data, now, narrative, connected };
-}
-
-function captionOf(doc: AutoLive | null, now: number, spoken: string | null, silent: boolean): string | null {
-  if (spoken) return spoken;
-  const commentary = doc?.commentary;
-  if (!silent || !commentary || commentary.scene_id !== doc.scene_id || now - commentary.at > CAPTION_S) return null;
-  return commentary.text;
 }
 
 /** `/live?output`: the clean picture the pipeline's hidden browser records and streams, voice included. */
@@ -197,6 +188,7 @@ export function AutoLivePage(props: Options) {
         <Badge appearance="filled" color={s.enabled ? "danger" : "informative"} icon={<BotSparkleRegular />}>
           {s.enabled ? "Auto live on" : "Auto live off"}
         </Badge>
+        {studio && <Button as="a" href="/studio" size="small" icon={<ArrowLeftRegular />}>Back to studio</Button>}
       </AppNav>
       <main className={styles.main}>
         <div className={styles.column}>

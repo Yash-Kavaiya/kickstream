@@ -177,3 +177,12 @@ test("the control page shows the commentary as captions while its sound is off, 
   expect(screen.getByText(/Azure Speech · centralindia/)).toBeTruthy();
   expect(screen.getByText(/120 of [\d,.\s]+ Azure Speech characters/)).toBeTruthy();
 });
+
+test("the control page leads back to the studio", () => {
+  serve();
+  const { deps } = silentVoice();
+  renderUi(<AutoLivePage eventSource={FakeEventSourceCtor} retryMs={10} pollMs={10} speech={deps} />);
+  push(autoLive());
+  pushStudio();
+  expect(screen.getByRole("link", { name: "Back to studio" }).getAttribute("href")).toBe("/studio");
+});

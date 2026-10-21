@@ -1,11 +1,12 @@
 import { Button, makeStyles, MessageBar, MessageBarActions, MessageBarBody, Text, tokens } from "@fluentui/react-components";
-import { DismissRegular } from "@fluentui/react-icons";
+import { BotSparkleRegular, DismissRegular } from "@fluentui/react-icons";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AUTOLIVE_STREAM } from "../autolive/api";
 import { endBroadcast, goLiveWith } from "../broadcasts/api";
 import { useStudioBroadcast } from "../broadcasts/StudioBroadcast";
 import { useThisComputer } from "../calls/thisComputer";
 import { useHostCall } from "../calls/useHostCall";
-import type { Broadcast, FanZone, Output, People, Scene, SceneElement, Studio, ViewerProfile } from "../contracts";
+import type { AutoLive, Broadcast, FanZone, Output, People, Scene, SceneElement, Studio, ViewerProfile } from "../contracts";
 import { AskCopilot } from "../copilot/AskCopilot";
 import { FANS_STREAM } from "../fans/api";
 import { OUTPUT_STREAM } from "../output/api";
@@ -27,6 +28,7 @@ import { withFallbacks } from "./ProgramPage";
 import { SceneStrip } from "./SceneStrip";
 import { Stage } from "./Stage";
 import { TOOLS, type ToolName, ToolRail } from "./ToolRail";
+import { AutoLiveTool } from "./tools/AutoLiveTool";
 import { BannersTool } from "./tools/BannersTool";
 import { CommentsTool } from "./tools/CommentsTool";
 import { GuestsTool } from "./tools/GuestsTool";
@@ -100,6 +102,7 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
   const { doc: output, accept: acceptOutput } = useLiveDocument<Output>(OUTPUT_STREAM, eventSource, retryMs);
   const { doc: people, accept: acceptPeople } = useLiveDocument<People>(broadcastId !== undefined ? peopleStream(broadcastId) : null, eventSource, retryMs);
   const { doc: fans, accept: acceptFans } = useLiveDocument<FanZone>(FANS_STREAM, eventSource, retryMs);
+  const { doc: autoLive, accept: acceptAutoLive } = useLiveDocument<AutoLive>(AUTOLIVE_STREAM, eventSource, retryMs);
   // The match is followed in the studio's one commentary, as the program shows it.
   const mode = studio ? programMode(studio) : undefined;
   const language = studio?.settings.language;
@@ -110,6 +113,8 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
   const { matchId } = useCurrentMatch(profile, { eventSource, retryMs, pollMs });
   const match = useMatch((state) => state.data);
   const now = useNow() + offset;
+  const latestNarrative = match.narratives[0];
+  const narrative = useMemo(() => (latestNarrative ? { id: latestNarrative.id, text: latestNarrative.text } : null), [latestNarrative]);
 
   // The host's camera call lives here, above every tool and mode, so switching them never drops it.
   const broadcastLive = link.broadcast?.state === "live";
@@ -205,6 +210,17 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
   const runPeople = async (request: () => Promise<People>): Promise<boolean> => {
     try {
       acceptPeople(await request());
+      setProblem(null);
+      return true;
+    } catch (caught) {
+      setProblem(caught instanceof Error ? caught.message : "The change was not made.");
+      return false;
+    }
+  };
+
+  const runAutoLive = async (request: () => Promise<AutoLive>): Promise<boolean> => {
+    try {
+      acceptAutoLive(await request());
       setProblem(null);
       return true;
     } catch (caught) {
@@ -321,6 +337,8 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
         );
       case "Stream":
         return <StreamTool output={output} now={now} onRun={runOutput} liveControls={broadcastId === undefined} />;
+      case "Auto live":
+        return <AutoLiveTool doc={autoLive} data={data} now={now} output={output} onRun={runAutoLive} narrative={narrative} />;
       case "Settings":
         return <SettingsTool settings={studio.settings} onSave={(settings) => void run(() => saveSettings(settings))} />;
       default:
@@ -335,7 +353,13 @@ export function StudioPage({ broadcastId, eventSource, retryMs, pollMs }: Studio
           editing={editing !== null} onToggleEdit={() => setEditingId(editing === null ? onAir.id : null)}
           onGoLive={goLiveWithBroadcast && (() => void goLiveWithBroadcast())} goLiveBlocked={canSend ? undefined : NO_DESTINATION}
           onEnd={(broadcast) => void end(broadcast)} busy={busy} now={now}
-          extras={<><AskCopilot /><ThemeToggle className={styles.onDark} /></>} />
+          extras={<>
+            {autoLive?.settings.enabled && (
+              <Button appearance="subtle" size="small" icon={<BotSparkleRegular />} className={styles.onDark}
+                aria-label="Auto live on: open the Auto live tool" onClick={() => setOpenTool("Auto live")}>Auto live on</Button>
+            )}
+            <AskCopilot /><ThemeToggle className={styles.onDark} />
+          </>} />
       </div>
       <section aria-label="Studio errors" className={styles.errors}>
         {shownProblem && (

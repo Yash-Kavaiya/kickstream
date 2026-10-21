@@ -1,16 +1,16 @@
 import { Button, CounterBadge, makeStyles, Text, ToggleButton, tokens } from "@fluentui/react-components";
 import {
-  ChatRegular, DismissRegular, FlashRegular, LiveRegular, MegaphoneRegular, PeopleTeamRegular, SettingsRegular, SportSoccerRegular,
+  BotSparkleRegular, ChatRegular, DismissRegular, FlashRegular, LiveRegular, MegaphoneRegular, PeopleTeamRegular, SettingsRegular, SportSoccerRegular,
   TimerRegular,
 } from "@fluentui/react-icons";
 import type { ReactElement, ReactNode } from "react";
 
-export const TOOLS = ["Match", "Banners", "Comments", "Guests", "Replays", "Timer", "Stream", "Settings"] as const;
+export const TOOLS = ["Match", "Banners", "Comments", "Guests", "Replays", "Timer", "Stream", "Auto live", "Settings"] as const;
 export type ToolName = (typeof TOOLS)[number];
 
 const TOOL_ICONS: Record<ToolName, ReactElement> = {
   Match: <SportSoccerRegular />, Banners: <MegaphoneRegular />, Comments: <ChatRegular />, Guests: <PeopleTeamRegular />, Replays: <FlashRegular />,
-  Timer: <TimerRegular />, Stream: <LiveRegular />, Settings: <SettingsRegular />,
+  Timer: <TimerRegular />, Stream: <LiveRegular />, "Auto live": <BotSparkleRegular />, Settings: <SettingsRegular />,
 };
 
 const useStyles = makeStyles({
