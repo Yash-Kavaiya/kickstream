@@ -1,4 +1,6 @@
+import heapq
 from collections.abc import Callable
+from operator import attrgetter
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
@@ -83,7 +85,7 @@ def intelligence(store: MatchStore, match_id: str, mode: Mode, player: str | Non
         explanations=explanations[-MAX_EXPLANATIONS:],
         pitch=latest.get("pitch_scene"),
         player=tracked,
-        highlights=sorted(highlights, key=lambda highlight: -highlight.score)[:MAX_HIGHLIGHTS],
+        highlights=heapq.nlargest(MAX_HIGHLIGHTS, highlights, key=attrgetter("score")),
         runs=runs[-MAX_RUNS:],
     )
 

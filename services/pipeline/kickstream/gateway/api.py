@@ -11,7 +11,7 @@ from kickstream.domain.demo import DEMO_SEED
 from kickstream.domain.errors import Refusal
 from kickstream.domain.sockets import NOT_FOUND, REFUSED, pump, refuse
 from kickstream.domain.types import Language, Mode
-from kickstream.gateway.stream import stream_items
+from kickstream.gateway.stream import stream_json
 from kickstream.ports.broadcaster import Broadcaster
 from kickstream.ports.match_source import SourceFailure, SourceUnavailable
 from kickstream.ports.store import MatchStore
@@ -119,10 +119,10 @@ def build_router(
         profile = ViewerProfile(mode=mode, language=lang, club=club or None, player=player or None)
 
         async def events():
-            async for envelope in stream_items(
+            async for item_id, text in stream_json(
                 store, broadcaster, match_id, profile, parse_last_event_id(last_event_id)
             ):
-                yield {"id": str(envelope.id), "data": envelope.model_dump_json()}
+                yield {"id": str(item_id), "data": text}
 
         return EventSourceResponse(events())
 
@@ -146,10 +146,10 @@ def build_router(
         profile = ViewerProfile(mode=mode, language=lang, club=club or None, player=player or None)
 
         async def envelopes():
-            async for envelope in stream_items(
+            async for _, text in stream_json(
                 store, broadcaster, match_id, profile, parse_last_event_id(after)
             ):
-                yield envelope.model_dump_json()
+                yield text
 
         await pump(websocket, envelopes(), socket_hosts)
 
@@ -159,7 +159,7 @@ def build_router(
         latest: dict[str, dict] = {}
         for item in store.read(match_id):
             if item.type == "overlay" and item.language in (None, lang):
-                latest[item.payload.kind] = item.payload.model_dump(mode="json")
+                latest[item.payload.kind] = item.payload_data
         return latest
 
     return router

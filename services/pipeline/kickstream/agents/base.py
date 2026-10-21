@@ -51,5 +51,7 @@ def clock(minute: int, second: int) -> int:
 
 
 def fade(values: list[float], seconds: float) -> list[float]:
-    factor = 0.5 ** (max(0.0, seconds) / HALF_LIFE_S)
+    if seconds <= 0:
+        return values
+    factor = 0.5 ** (seconds / HALF_LIFE_S)
     return [value * factor for value in values]

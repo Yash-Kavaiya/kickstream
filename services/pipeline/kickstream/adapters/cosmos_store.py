@@ -40,7 +40,7 @@ def to_document(item: LogItem) -> dict:
         "mode": item.mode,
         "team_id": item.team_id,
         "player_id": item.player_id,
-        "payload": item.payload.model_dump(mode="json"),
+        "payload": item.payload_data,
     }
 
 

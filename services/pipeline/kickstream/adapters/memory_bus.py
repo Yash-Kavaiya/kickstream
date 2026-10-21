@@ -38,14 +38,18 @@ class _Subscription:
 
 
 class InMemoryEventBus:
-    """Ordered, bounded, in-process pub/sub. Publishing waits when a subscriber is full."""
+    """Ordered, bounded, in-process pub/sub. Publishing waits when a subscriber is full.
+
+    Subscriptions are indexed by topic, so a publish visits only the subscribers of its topic.
+    """
 
     def __init__(self) -> None:
-        self._subscriptions: list[_Subscription] = []
+        self._by_topic: dict[str, dict[_Subscription, None]] = {}
 
     def subscribe(self, *topics: str, maxsize: int = 256) -> _Subscription:
-        subscription = _Subscription(topics, maxsize, self._subscriptions.remove)
-        self._subscriptions.append(subscription)
+        subscription = _Subscription(topics, maxsize, self._unsubscribe)
+        for topic in subscription.topics:
+            self._by_topic.setdefault(topic, {})[subscription] = None
         return subscription
 
     async def publish(self, topic: str, match_id: str, payload: BaseModel) -> None:
@@ -55,6 +59,14 @@ class InMemoryEventBus:
             log.warning("dropped invalid %s on %s: %s", type(payload).__name__, topic, exc.errors()[0]["msg"])
             return
         message = BusMessage(topic, match_id, payload)
-        for subscription in list(self._subscriptions):
-            if topic in subscription.topics and not subscription.closed:
+        for subscription in list(self._by_topic.get(topic, ())):
+            if not subscription.closed:
                 await subscription.queue.put(message)
+
+    def _unsubscribe(self, subscription: _Subscription) -> None:
+        for topic in subscription.topics:
+            subscribers = self._by_topic.get(topic)
+            if subscribers is not None:
+                subscribers.pop(subscription, None)
+                if not subscribers:
+                    del self._by_topic[topic]

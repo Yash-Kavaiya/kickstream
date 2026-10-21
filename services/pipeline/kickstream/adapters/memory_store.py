@@ -1,11 +1,19 @@
+from bisect import bisect_right
+from operator import attrgetter
+
 from pydantic import BaseModel
 
 from kickstream.domain.recent import make_room
 from kickstream.ports.store import LogItem
 
+_by_id = attrgetter("id")
+
 
 class InMemoryMatchStore:
-    """The logs of the newest matches. An older match is forgotten, so a pipeline running for days stays bounded."""
+    """The logs of the newest matches. An older match is forgotten, so a pipeline running for days stays bounded.
+
+    Each log is kept in id order, so appending is O(1) and reading after an id is a binary search.
+    """
 
     def __init__(self, remembered: int = 6) -> None:
         self._logs: dict[str, list[LogItem]] = {}
@@ -27,7 +35,7 @@ class InMemoryMatchStore:
         log = self._logs.setdefault(match_id, [])
         # One past the highest id, not the length: a gap must not hand that id out again.
         item = LogItem(
-            id=max((kept.id for kept in log), default=0) + 1,
+            id=log[-1].id + 1 if log else 1,
             match_id=match_id,
             type=type,
             minute=minute,
@@ -43,10 +51,11 @@ class InMemoryMatchStore:
     def restore(self, match_id: str, items: list[LogItem]) -> None:
         """Put a match's log back as it was stored, keeping each item's id."""
         make_room(self._logs, match_id, self._remembered)
-        self._logs[match_id] = sorted(items, key=lambda item: item.id)
+        self._logs[match_id] = sorted(items, key=_by_id)
 
     def read(self, match_id: str, after_id: int = 0) -> list[LogItem]:
-        return [item for item in self._logs.get(match_id, []) if item.id > after_id]
+        log = self._logs.get(match_id, [])
+        return log[bisect_right(log, after_id, key=_by_id) :]
 
     def has(self, match_id: str) -> bool:
         return match_id in self._logs
