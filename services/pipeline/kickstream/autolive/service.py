@@ -281,7 +281,11 @@ class AutoLiveService:
     async def _write(self, scene: AutoLiveScene, opening: bool) -> None:
         try:
             text, source = await self._commentary.write(
-                scene, self._facts, self._fans(), opening=opening, language=known(self._settings.language),
+                scene,
+                self._facts,
+                self._fans(),
+                opening=opening,
+                language=known(self._settings.language),
             )
         except Exception:
             log.exception("auto live commentary could not be written")
