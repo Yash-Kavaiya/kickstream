@@ -35,6 +35,10 @@ jobs:
         run: |
           uv run python -m kickstream.tools.gen_contracts
           git diff --exit-code -- kickstream/contracts.py
+      # Ubuntu's AppArmor stops unprivileged user namespaces, which the browser's sandbox needs.
+      # The capture tests run a real browser, and it must keep its sandbox, as it does in production.
+      - name: Let the browser sandbox start
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - name: Test
         run: uv run pytest -q
 
