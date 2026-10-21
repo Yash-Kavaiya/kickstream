@@ -6,11 +6,14 @@ import itertools
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 import time
 import urllib.parse
 import urllib.request
+from collections import deque
+from collections.abc import Iterable
 from pathlib import Path
 
 import websockets
@@ -78,6 +81,28 @@ _QUIET = logging.getLogger("kickstream.devtools_frames")
 _QUIET.setLevel(logging.CRITICAL)
 _QUIET.propagate = False
 
+log = logging.getLogger(__name__)
+_KEPT_LINES = 20  # of the browser's error output: enough to say why it stopped, bounded however long it runs
+# Chromium prefixes its log lines with [pid:tid:time:LEVEL:file.cc(line)]; the reason is what follows.
+_LOG_PREFIX = re.compile(r"^\[[^\]]*\]\s*")
+
+
+class BrowserExited(OSError):
+    """The browser ended before it was ready, with its own last word on why when it gave one."""
+
+    def __init__(self, why: str | None) -> None:
+        super().__init__(f"the browser exited at once{f': {why}' if why else ''}")
+        self.why = why
+
+
+def last_words(stderr: Iterable[str]) -> str | None:
+    """The line of a browser's error output that says why it stopped: its last error, else its last line."""
+    lines = [line.strip() for line in stderr if line.strip()]
+    if not lines:
+        return None
+    errors = [line for line in lines if ":ERROR:" in line or ":FATAL:" in line]
+    return _LOG_PREFIX.sub("", (errors or lines)[-1])[:300]
+
 
 def _page_socket(port: int, timeout: float) -> str:
     # Loopback must not go through a proxy from the environment or the system settings.
@@ -127,6 +152,8 @@ class ChromiumCapture:
         self._devtools = None
         self._profile: Path | None = None
         self._ids = itertools.count(1)
+        self._stderr: deque[str] = deque(maxlen=_KEPT_LINES)
+        self._stderr_reader: asyncio.Task | None = None
 
     def available(self) -> str | None:
         return None if find_browser(self._configured) else _MISSING
@@ -150,13 +177,15 @@ class ChromiumCapture:
         page_late = f"The program page did not start. Check that it opens at {_without_token(url)}"
         record_late = "The program page did not begin recording in time."
         self._profile = Path(tempfile.mkdtemp(prefix="kickstream-browser-"))
+        self._stderr.clear()
         try:
             self._process = await asyncio.create_subprocess_exec(
                 binary,
                 *browser_args(self._profile, width, height),
                 stdout=asyncio.subprocess.DEVNULL,
-                stderr=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,
             )
+            self._stderr_reader = asyncio.create_task(self._keep_stderr(self._process.stderr))
             self._group = KillOnExit()
             self._group.add(self._process.pid)
             port = await self._within(browser_late, self._debugging_port())
@@ -204,7 +233,10 @@ class ChromiumCapture:
             raise
         except (OSError, TimeoutError, NotImplementedError, websockets.WebSocketException) as exc:
             await self.stop()
-            raise OutputFailure(f"The hidden browser could not be started ({type(exc).__name__}).") from exc
+            log.warning("the hidden browser could not be started: %s", exc)
+            why = exc.why if isinstance(exc, BrowserExited) else None
+            reason = f": {why}" if why else f" ({type(exc).__name__})."
+            raise OutputFailure(f"The hidden browser could not be started{reason}") from exc
 
     async def _size_content(self, width: int, height: int) -> None:
         """Make the page's own area exactly width x height, at a pixel ratio of 1.
@@ -244,7 +276,10 @@ class ChromiumCapture:
             with contextlib.suppress(OSError, ValueError, IndexError):
                 return int(port_file.read_text(encoding="utf-8").splitlines()[0])
             if self._process.returncode is not None:
-                raise OSError("the browser exited at once")
+                # The rest of what it wrote arrives a moment after it ends.
+                with contextlib.suppress(TimeoutError):
+                    await asyncio.wait_for(asyncio.shield(self._stderr_reader), 1)
+                raise BrowserExited(last_words(self._stderr))
             await asyncio.sleep(0.1)
 
     async def _call(self, method: str, **params) -> dict:
@@ -274,6 +309,11 @@ class ChromiumCapture:
         if self._process is not None:
             await self._process.wait()
 
+    async def _keep_stderr(self, stream: asyncio.StreamReader) -> None:
+        """Read the browser's error output for as long as it runs, so it never blocks, keeping only the newest lines."""
+        while line := await stream.readline():
+            self._stderr.append(line.decode("utf-8", errors="replace"))
+
     async def stop(self) -> None:
         # End the browser first: a frozen one would never answer a close handshake.
         group, self._group = self._group, None
@@ -285,6 +325,9 @@ class ChromiumCapture:
                 process.kill()
             with contextlib.suppress(TimeoutError):
                 await asyncio.wait_for(process.wait(), 5)
+        reader, self._stderr_reader = self._stderr_reader, None
+        if reader is not None:
+            reader.cancel()
         devtools, self._devtools = self._devtools, None
         if devtools is not None:
             with contextlib.suppress(Exception):

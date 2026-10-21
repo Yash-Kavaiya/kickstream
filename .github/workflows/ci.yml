@@ -35,6 +35,19 @@ jobs:
         run: |
           uv run python -m kickstream.tools.gen_contracts
           git diff --exit-code -- kickstream/contracts.py
+      # Ubuntu's AppArmor stops unprivileged user namespaces, which the browser's sandbox needs.
+      # The capture tests run a real browser, and it must keep its sandbox, as it does in production.
+      - name: Let the browser sandbox start
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      # A browser's first launch on a fresh runner builds its caches and can outlast a capture's start
+      # deadline. Launch the one the tests use once, with a generous limit, so the tests time a warm start.
+      - name: Warm up the browser
+        run: |
+          browser=$(uv run python -c "from kickstream.adapters.chromium_capture import find_browser; print(find_browser(None) or '')")
+          if [ -n "$browser" ]; then
+            echo "Warming up $browser"
+            time timeout 120 "$browser" --headless=new --no-first-run --user-data-dir="$(mktemp -d)" --dump-dom about:blank > /dev/null
+          fi
       - name: Test
         run: uv run pytest -q
 

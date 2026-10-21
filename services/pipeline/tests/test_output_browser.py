@@ -13,6 +13,7 @@ from kickstream.adapters.chromium_capture import (
     browser_args,
     find_browser,
     honest_user_agent,
+    last_words,
 )
 from kickstream.adapters.process_group import KillOnExit
 from kickstream.ports.output import OutputFailure
@@ -101,6 +102,29 @@ def test_a_configured_browser_that_does_not_exist_is_not_found():
     assert find_browser("no-such-browser-binary") is None
     capture = ChromiumCapture("no-such-browser-binary")
     assert capture.available().startswith("No Chromium-based browser was found")
+
+
+def test_a_browser_s_last_error_is_the_reason_given():
+    stderr = [
+        "[1:1:1021/1.0:WARNING:dbus.cc(9)] Failed to connect to the bus\n",
+        "[1:1:1021/1.0:ERROR:zygote_host_impl_linux.cc(101)] No usable sandbox!\n",
+        "Trace/breakpoint trap\n",
+    ]
+    assert last_words(stderr) == "No usable sandbox!"
+    assert last_words(["Segmentation fault\n", "\n"]) == "Segmentation fault"
+    assert last_words(["  \n"]) is None
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="the stand-in browser is a shell script")
+async def test_a_browser_that_exits_at_once_says_why_and_leaves_nothing_behind(tmp_path, caplog):
+    browser = tmp_path / "broken-browser"
+    browser.write_text("#!/bin/sh\necho '[1:1:0:FATAL:sandbox.cc(1)] No usable sandbox!' >&2\nexit 1\n")
+    browser.chmod(0o755)
+    capture = ChromiumCapture(str(browser))
+    with pytest.raises(OutputFailure, match="could not be started: No usable sandbox!"):
+        await capture.start("http://127.0.0.1:9/program", 1280, 720)
+    assert "No usable sandbox!" in caplog.text
+    assert capture._profile is None, "the browser's profile is removed"
 
 
 def test_closing_the_group_ends_the_processes_in_it():
