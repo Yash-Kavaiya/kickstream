@@ -70,9 +70,18 @@ const BLANK_POINT = { momentum: null, xgHome: null, xgAway: null, winHome: null,
 
 /** The series with this minute's point changed, added in order when it is new. */
 function withPoint(series: SeriesPoint[], minute: number, changes: Partial<SeriesPoint>): SeriesPoint[] {
-  const index = series.findIndex((point) => point.minute === minute);
-  if (index >= 0) return series.map((point, at) => (at === index ? { ...point, ...changes } : point));
-  return [...series, { minute, ...BLANK_POINT, ...changes }].sort((a, b) => a.minute - b.minute);
+  // Points are kept sorted by minute, so binary-search for this minute's place.
+  let low = 0;
+  let high = series.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (series[middle].minute < minute) low = middle + 1;
+    else high = middle;
+  }
+  const next = series.slice();
+  if (series[low]?.minute === minute) next[low] = { ...series[low], ...changes };
+  else next.splice(low, 0, { minute, ...BLANK_POINT, ...changes });
+  return next;
 }
 
 /** Folds one stream envelope into the match data. Pure; replays and duplicates are ignored by id. */

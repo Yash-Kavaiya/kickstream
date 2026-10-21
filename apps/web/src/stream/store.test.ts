@@ -126,6 +126,15 @@ test("stats and predictions build one point a minute for the graphs, in order, w
   ]);
 });
 
+test("a late point lands between the minutes around it", () => {
+  const data = apply(
+    ...[1, 2, 4, 5].map((minute, index) => envelope(index + 1, "stats", { ...stats({}, {}, minute / 10), minute })),
+    envelope(5, "prediction", prediction({ minute: 3 })),
+  );
+  expect(data.series.map((point) => point.minute)).toEqual([1, 2, 3, 4, 5]);
+  expect(data.series[2].momentum).toBeNull();
+});
+
 test("only the latest structured events and runs are kept", () => {
   const many = Array.from({ length: 100 }, (_, index) => [
     envelope(index * 2 + 1, "play", play({ id: `y${index}` })), envelope(index * 2 + 2, "agent_run", agentRun({ id: `r${index}` })),
