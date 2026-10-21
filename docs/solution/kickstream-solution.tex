@@ -28,7 +28,7 @@
   {\color{CommBlue}\hrule height 2.5pt}\vspace{1pt}%
   {\color{Rule}\hrule height 0.4pt}%
 }
-\fancyfoot[L]{\color{Muted}\small Describes this repository. Not a Marketplace listing.}
+\fancyfoot[L]{\color{Muted}\small Describes this repository as of 20 October 2026. Not a Marketplace listing.}
 \fancyfoot[R]{\color{Muted}\small\thepage}
 \renewcommand{\sectionmark}[1]{\markboth{#1}{}}
 \titleformat{\section}
@@ -66,18 +66,24 @@
 \vspace{0.8em}
 {\KickstreamTitleSize\bfseries Kickstream\par}
 \vspace{0.4em}
-{\fontsize{16}{22}\selectfont Live football broadcast studio\par}
+{\fontsize{16}{22}\selectfont AI stream agents for live football\par}
 \vspace{1.2em}
 \color{Muted}
-The web studio, the match pipeline and agents, and the Azure resources
-defined in \texttt{deploy/terraform}.\\[0.4em]
+The web studio, the match pipeline, the seven analyst agents in three teams,
+unified analytics, auto live, and the Azure resources defined in
+\texttt{deploy/terraform}, deployed from GitHub.\\[0.4em]
 Kickstream does not implement Microsoft Marketplace SaaS fulfillment,
 an Entra purchase landing page, or a live Partner Center offer.\par
 \vspace{1.4em}
 {\color{CommBlue}\rule{48pt}{3pt}\par}
+\vspace{1.4em}
+{\small Challenge: The Synthetic Match Insights Engine for Premier League Studio.\\
+Repository: \url{https://github.com/Yash-Kavaiya/kickstream}\\
+Edition: 20 October 2026.\par}
 \vfill
 {\small\color{Muted} Companion briefing: \texttt{kickstream-briefing.pdf}.
-HTML entry: \texttt{docs/solution/index.html}.\par}
+HTML entry: \texttt{docs/solution/index.html}.
+Scaling note: \texttt{docs/architecture/scalable.html}.\par}
 \end{titlepage}
 
 \tableofcontents
@@ -91,31 +97,56 @@ A host creates a broadcast, composes scenes in the studio, and goes live to
 YouTube, X, Facebook and Twitch at once.
 The picture on the program is a match event stream turned into live intelligence,
 AI narratives and recaps.
+Seven analyst agents, working in three teams, read the match as it happens.
+A unified analytics dashboard joins the match, the agents, the audience and the
+broadcasts on one page.
+Auto live runs a channel by itself with a spoken commentator in twenty languages.
 Agents then cut the recording's best moments into vertical reels.
 
+The match is synthetic by default: a seeded simulator plays Northbridge FC
+against Harbour City, two fictional clubs, so every insight can be produced and
+replayed without licensed data.
 This document describes the software in this repository: \texttt{apps/web},
 \texttt{services/pipeline}, and the resources \texttt{deploy/terraform} creates.
 It is not a store listing.
 
+\subsection{What changed in this edition}
+
+\begin{itemize}
+  \item \textbf{Teams of analyst agents.} The seven match agents now work as the
+    Match Reading, Forecast and Story teams. \texttt{/match} is called Analyst teams.
+  \item \textbf{Unified analytics.} \texttt{/dashboard} shows the score, odds,
+    expected goals, momentum, team stats, each team's and agent's work, the best
+    players, the audience, the broadcasts and auto live, live.
+  \item \textbf{Agent tools.} Each agent takes custom instructions, up to three
+    connectors of the operator's own, and a chat.
+  \item \textbf{Auto live in twenty languages}, each with a matching Azure neural voice.
+  \item \textbf{Studio.} One commentary for the program, nine league-style background
+    plates, element delete, a large solo camera frame, and a goal celebration.
+  \item \textbf{Operations.} Deploy from GitHub with OIDC, match logs in Cosmos DB,
+    and narration through a Microsoft Foundry project.
+\end{itemize}
+
 \subsection{The running demo}
 
-These pictures are the local demo: a synthetic match, the operator's home, the studio, match data, and auto live.
+These pictures are the local demo on 20 October 2026: a synthetic match, the
+operator's home, the studio, the analyst teams, one agent, the dashboard, auto
+live, and a finished broadcast.
 The scene strip switches the program with a click.
 Keyboard shortcuts are not implemented.
 
-\DemoShot{figures/home.png}{Home. The next broadcast, the program preview, and each destination.}
-\DemoShot{figures/studio.png}{Studio. The program, the tool rail, and the numbered scene strip.}
-\DemoShot{figures/match.png}{Match data. The seven agents, the agent flow, and the 3D pitch.}
-\DemoShot{figures/live.png}{Auto live. Twenty-two screens, with the channel off until an operator turns it on.}
+\DemoShot{figures/home.png}{Home. The next broadcast, a live program preview, the scene on air, the match feed, broadcasts and destinations.}
+\DemoShot{figures/studio.png}{Studio. The program at 39 minutes: score, 3D pitch, momentum, win probability, a ``why this matters'' card, match stats and a player card. The scene strip sits under the stage.}
+\DemoShot{figures/match.png}{Analyst teams. Three team cards with their recent runs, and the agent flow from the match feed to the Explainability and Highlights agents.}
 
 \begin{itemize}
   \item \textbf{In scope.}
     Home (\texttt{/}), a broadcast (\texttt{/broadcasts/\{id\}}), that broadcast's studio,
-    \texttt{/studio}, match data (\texttt{/match}), a guest page (\texttt{/guest/\{secret\}}),
-    and auto live (\texttt{/live}).
+    \texttt{/studio}, Analyst teams (\texttt{/match}), unified analytics (\texttt{/dashboard}),
+    a guest page (\texttt{/guest/\{secret\}}), and auto live (\texttt{/live}).
     The pipeline is Python 3.13 and FastAPI.
     The web app is Vite, React, TypeScript, and Fluent UI v9.
-    Match-page languages are English, Spanish, and Hindi.
+    Match-page languages are English, Spanish, and Hindi; auto live speaks twenty.
     Commentary modes are Fan and Analyst.
   \item \textbf{Out of scope.}
     A transactable Marketplace offer, fulfillment webhooks, metering, or a purchase landing page.
@@ -133,14 +164,16 @@ section still sees them.
 
 Kickstream runs as one program.
 Locally that is FastAPI on port 8000 and the Vite app on port 5173.
-On Azure the template puts the server in a single Container App.
+On Azure the template puts the server, which also serves the built web app, in a
+single Container App.
 Matches, the studio, and live streams are held in that process's memory, so the
 app is pinned to one replica (\texttt{min\_replicas = 1}, \texttt{max\_replicas = 1}).
 
 \subsection{Pipeline}
 
 A match moves through five stages. The seven match agents publish findings onto
-the same stream the browser reads.
+the same stream the browser reads. Stages talk only through the event bus and the
+contracts in \texttt{packages/contracts}, and never import one another.
 
 \begin{center}
 \small
@@ -171,13 +204,15 @@ file, or a source & stats and pressure & Fan and Analyst & scene widgets & mode 
   \draw[arr] (b) -- (c);
   \draw[arr] (c) -- (d);
   \draw[arr] (d) -- (e);
-  \node[stage, fill=Canvas, below=8mm of c] (g) {7 agents};
+  \node[stage, fill=Canvas, below=8mm of b] (g) {3 analyst teams\\7 agents};
+  \node[stage, fill=Canvas, below=8mm of d] (h) {Dashboard};
   \node[stage, fill=Canvas, below=8mm of e] (f) {ffmpeg};
-  \draw[arr] (c) -- (g);
-  \draw[arr] (e.south) -- ++(0,-3mm) -| (f.north);
+  \draw[arr] (b) -- (g);
+  \draw[arr] (e) -- (h);
+  \draw[arr] (e) -- (f);
 \end{tikzpicture}
 \end{center}
-{\small\color{Muted} One encode. ffmpeg copies that picture to every destination.\par}
+{\small\color{Muted} One encode. ffmpeg copies that picture to every destination. The dashboard reads the streams the gateway already sends.\par}
 
 The gateway fans the match out with Server-Sent Events and WebSockets.
 A late joiner is replayed the newest pitch scene and the newest player report, not the whole history.
@@ -185,20 +220,45 @@ WebSockets are accepted only from the host the pipeline was reached at.
 Behind a proxy that rewrites \texttt{Host}, public names go in \texttt{KICKSTREAM\_ALLOWED\_HOSTS}.
 On the Container App, \texttt{KICKSTREAM\_PUBLIC\_HOSTS} is the app's own address.
 
-Narration, when a model is configured, is four Microsoft Agent Framework agents:
+\subsection{Agents and writers}
+
+The seven match agents compute; one writes.
+They are declared the way a Copilot Studio agent is: instructions, triggers,
+tools, outputs and the agents they are connected to.
+
+\begin{center}
+\begin{tikzpicture}[
+  team/.style={draw=CommBlue, line width=0.6pt, fill=Wash, rounded corners=2pt,
+    align=center, font=\scriptsize, text=Ink, inner sep=1.4mm, minimum width=46mm, minimum height=17mm},
+  head/.style={font=\scriptsize\bfseries, text=CommBlue}
+]
+  \node[team] (r) at (0,0) {Event Interpreter\\Tactical Analyst\\Player Tracking Agent};
+  \node[head, above=0.5mm of r] {MATCH READING TEAM};
+  \node[team] (f) at (5.4,0) {Prediction Agent\\Explainability Agent};
+  \node[head, above=0.5mm of f] {FORECAST TEAM};
+  \node[team] (s) at (10.8,0) {Visualization Agent\\Highlights Agent};
+  \node[head, above=0.5mm of s] {STORY TEAM};
+\end{tikzpicture}
+\end{center}
+
+Narration, when a model is configured, is four Microsoft Agent Framework agents
+sharing one Foundry client:
 a Commentator and a Tactical Analyst on each key moment, a Recap Writer at
 half-time and full-time, and a Localizer into Spanish and Hindi.
-Each item is written once per mode and language.
-If the model fails, that item falls back to a template and is marked scripted.
+Each item is written once per mode and language and sent to every viewer on that
+variant, so model cost does not grow with the audience.
+Output is cached. If the model fails, that item falls back to a template and is marked scripted.
 Only the Explainability Agent, among the seven match agents, writes prose.
 That prose is English, at most 20 explanations a match.
+Agent chat and Ask Copilot word their answers from the same recorded facts, plus
+the agent's connectors when it has any.
 
 \subsection{Where state lives}
 
 \begin{itemize}
   \item \textbf{Playback, studio, encode.} Process memory locally, and the same inside the one replica.
-  \item \textbf{Broadcasts, studio document, uploads, cache, fans, auto live, keys, recordings, reels.} Directory \texttt{.data/} locally. Azure Files share \texttt{data}, mounted at \texttt{/data}.
-  \item \textbf{Match log.} Memory unless Cosmos is configured. On Azure: database \texttt{kickstream}, container \texttt{match\_log}, partition \texttt{/match\_id}.
+  \item \textbf{Broadcasts, studio document, uploads, cache, fans, auto live, agent switches and instructions, connectors, keys, recordings, reels.} Directory \texttt{.data/} locally. Azure Files share \texttt{data}, mounted at \texttt{/data}.
+  \item \textbf{Match log.} Memory unless Cosmos is configured. On Azure: database \texttt{kickstream}, container \texttt{match\_log}, partition \texttt{/match\_id}. Writes are queued and sent in the background, and a match not in memory is read back, so a restart keeps every replay.
   \item \textbf{Guest calls.} Communication Services, or \texttt{KICKSTREAM\_ROOMS=fake}. The deploy creates the Communication Services resource.
   \item \textbf{Model.} A Foundry project, or an OpenAI-compatible endpoint, otherwise templates. Terraform does not create Foundry.
 \end{itemize}
@@ -207,6 +267,14 @@ Going live opens \texttt{/studio?output} (1920 by 1080) in a hidden Chromium bro
 ffmpeg encodes that picture once and copies it to every destination.
 Microsoft Edge is used when it is present.
 Auto live captures \texttt{/live?output} the same way.
+
+\subsection{How it grows}
+
+\texttt{docs/architecture/scalable.html} draws the shape to grow into: one match
+owner, one encode, and viewers that scale apart.
+A viewer gateway would scale with viewers, a studio API with hosts, a match worker
+would hold one lease per match, and an encode worker one ffmpeg per live show.
+That is a design note. It is not what \texttt{deploy/terraform} creates today.
 
 \section{Functional capabilities}
 % area:functional-capabilities
@@ -222,14 +290,17 @@ Go live / End broadcast control.
 Tools, one at a time: Match, Banners, Comments, Guests, Replays, Timer, Stream, Settings.
 Templates: Starting soon, Live match, Analyst desk, Break, Full-time, Interview,
 Match intelligence, Fan zone, and 3D pitch.
-Live match is a Fan scene and Analyst desk is an Analyst scene, so a cut changes
-the narration.
-Banners fire for goals and red cards.
+The program carries one commentary, Fan or Analyst, for the whole studio.
+Banners fire for goals and red cards, and a goal plays a short celebration on the program.
 Replays animate the 20 seconds before a key moment.
 Widgets cover score, charts, prediction, why it matters, 3D pitch, player card,
 comments, poll, superchats, and spotlight.
-The host can show a local camera without Azure; the hidden browser receives the
-camera and microphone only, never the screen.
+Edit layout snaps, layers and deletes elements, and a scene can take one of nine
+original background plates (Night, Claret night, Sun gold, Red and black, Blue
+night, Navy gold, European night, Super League, Matchday pitch).
+These are broadcast looks, not a club's or a league's crest.
+The host can show a local camera without Azure; alone on the program it fills a
+large frame. The hidden browser receives the camera and microphone only, never the screen.
 
 \subsection{Destinations, broadcasts, reels, guests}
 
@@ -239,12 +310,15 @@ Each destination shows connecting, live, retrying, or failed.
 One failure does not stop the others.
 The only sound is the guest call. With nobody unmuted, the stream is silent.
 
+\DemoShot{figures/broadcast.png}{A finished broadcast: time on air, destinations reached, the score, key moments with their commentary, recordings, and each session's destinations.}
+
 End broadcast keeps sessions, recordings, time on air, destinations, the score,
 and key moments.
 Generate reels cuts up to four 15-second vertical clips (1080 by 1920).
 Each clip starts 8 seconds before its moment.
 A Highlight Editor and a Social Copywriter run when a model is set; they do not
 choose the edit points.
+A reel can be edited in Clipchamp and the export added back beside the original.
 
 Guest roles are Speaker, Co-host, and Member.
 Speaker and Co-host can be placed on stage; a Member cannot.
@@ -252,42 +326,72 @@ A Co-host can go live, end or delete the broadcast, and make or revoke invites.
 Up to four people are on stage.
 Calls use Azure Communication Services Rooms.
 
-\subsection{Agents, Copilot, fans, auto live}
+\subsection{Analyst teams and the seven agents}
 
-\begin{tabularx}{\textwidth}{@{}lX@{}}
+\DemoShot{figures/agent.png}{One agent, the Prediction Agent of the Forecast Team: its instructions, triggers and outputs, tools, custom instructions and connectors.}
+
+\begin{tabularx}{\textwidth}{@{}llX@{}}
 \toprule
-Agent & Output \\
+Team & Agent & Output \\
 \midrule
-Event Interpreter & Third, flank, phase, possession sequence, danger \\
-Tactical Analyst & Once a minute: pressure, tempo, tilt, patterns, control or chaos \\
-Prediction Agent & Win, draw, loss, goal chance in ten minutes, next action, danger grid \\
-Explainability Agent & English ``why this matters'' when patterns change, odds move by 12 points, or a hidden event appears \\
-Visualization Agent & 3D pitch. Only the ball and the player on it are known positions \\
-Player Tracking Agent & Touches, passing, shots, expected goals, rating, heat map, distance, top speed \\
-Highlights Agent & Ranked moments and hidden events \\
+Match Reading & Event Interpreter & Third, flank, phase, possession sequence, danger \\
+Match Reading & Tactical Analyst & Once a minute: pressure, tempo, tilt, patterns, control or chaos \\
+Match Reading & Player Tracking Agent & Touches, passing, shots, expected goals, rating, heat map, distance, top speed \\
+Forecast & Prediction Agent & Win, draw, loss, goal chance in ten minutes, next action, danger grid \\
+Forecast & Explainability Agent & English ``why this matters'' when patterns change, odds move by 12 points, or a hidden event appears \\
+Story & Visualization Agent & 3D pitch. Only the ball and the player on it are known positions \\
+Story & Highlights Agent & Ranked moments and hidden events \\
 \bottomrule
 \end{tabularx}
+
+Each agent can be switched off; the agents that listen to it then have less to work on.
+For the studio's users, each agent also has:
+\begin{itemize}
+  \item \textbf{Custom instructions}, up to 2,000 characters. A model follows them,
+    after its own rules, when it writes as that agent. What the agent computes does not change.
+  \item \textbf{Connectors}, up to three per agent. When the agent is asked a question,
+    Kickstream posts the question as JSON to each connector that is on, waits up to
+    10 seconds, and cites the answer as a Connector source. Answers are given to the
+    model as facts, never as instructions. At most 120 connector calls a match.
+  \item \textbf{Chat}, answered from that agent's part of the match and its connectors.
+    Anyone who can open \texttt{/match} can chat.
+\end{itemize}
 
 The chart counts calls the product allows in one match, not a measured audience.
 
 \begin{center}
-\begin{tikzpicture}[x=1.55mm, y=1mm]
-  \fill[CommBlue] (0,16) rectangle (20,24);
-  \node[anchor=west, font=\small, text=Ink] at (22,20) {Explainability, 20};
-  \fill[CommBlue!70!Canvas] (0,8) rectangle (40,16);
-  \node[anchor=west, font=\small, text=Ink] at (42,12) {Copilot answers, 40};
-  \fill[CommBlue!45!Canvas] (0,0) rectangle (60,8);
-  \node[anchor=west, font=\small, text=Ink] at (62,4) {Narration calls, 60};
-  \draw[Rule] (0,-2) -- (60,-2);
+\begin{tikzpicture}[x=0.95mm, y=1mm]
+  \fill[CommBlue] (0,24) rectangle (20,32);
+  \node[anchor=west, font=\small, text=Ink] at (22,28) {Explainability, 20};
+  \fill[CommBlue!80!Canvas] (0,16) rectangle (40,24);
+  \node[anchor=west, font=\small, text=Ink] at (42,20) {Copilot answers, 40};
+  \fill[CommBlue!60!Canvas] (0,8) rectangle (60,16);
+  \node[anchor=west, font=\small, text=Ink] at (62,12) {Narration calls, 60};
+  \fill[CommBlue!40!Canvas] (0,0) rectangle (120,8);
+  \node[anchor=west, font=\small, text=Ink] at (122,4) {Connector calls, 120};
+  \draw[Rule] (0,-2) -- (120,-2);
   \node[font=\scriptsize, text=Muted, anchor=north] at (0,-3) {0};
-  \node[font=\scriptsize, text=Muted, anchor=north] at (60,-3) {60};
+  \node[font=\scriptsize, text=Muted, anchor=north] at (120,-3) {120};
 \end{tikzpicture}
 \end{center}
+
+\subsection{Unified analytics}
+
+\DemoShot{figures/dashboard.png}{Unified analytics at 28 minutes: score, win chance, expected goals, analyst agents at work, highlights found, fan comments, time on air and auto live, above the win probability, expected goals and momentum, and team stats.}
+
+\texttt{/dashboard} is one live page built from the streams the server already sends:
+the score and odds, expected goals and momentum, team stats and tactics, work by
+team and every agent's runs, highlights by kind, the best-rated players, the
+audience's mood, platforms and topics, output and recent broadcasts, and auto live.
+It is a studio page, behind sign-in on a public deployment.
+
+\subsection{Ask Copilot, fans, auto live}
 
 Ask Copilot answers from the live match and from the newest 50 finished matches
 in \texttt{.data/matches.json}.
 Cards never come from the model.
 Web search is off until enabled: Wikipedia, or Tavily with \texttt{KICKSTREAM\_TAVILY\_API\_KEY}.
+Typing \texttt{@} sends the question to one agent.
 The same read-only answers are MCP tools at \texttt{POST /mcp}.
 
 The fan zone starts on a demo feed.
@@ -295,8 +399,15 @@ X is optional.
 Other platforms post to \texttt{POST /api/fans/ingest}.
 Kickstream shows superchats and takes no payment.
 
-Auto live (\texttt{/live}) cycles 22 scenes, including one per match agent, every
-5 to 10 minutes.
+\DemoShot{figures/live.png}{Auto live on: the Player Tracking Agent screen with a spoken line on screen, the 22 screens in the rotation, and the commentary language and voice.}
+
+Auto live (\texttt{/live}) cycles 22 scenes, including one per match agent and one
+of all seven at work, on a random gap the operator sets (5 to 10 minutes by default).
+An AI commentator introduces each scene and speaks again as often as set.
+Commentary speaks English, Spanish, Hindi, Portuguese, French, German, Italian,
+Dutch, Polish, Turkish, Arabic, Russian, Chinese, Japanese, Korean, Indonesian,
+Bengali, Tamil, Urdu or Marathi, each with matching Azure neural voices.
+Screen labels exist in English, Spanish and Hindi.
 Stream 24/7 publishes \texttt{/live?output} and restarts it if it drops.
 It waits while the studio is on air.
 
@@ -318,8 +429,8 @@ App-role assignment is required.
 The deployer and every object id in \texttt{studio\_users} receive default access.
 The app reads \texttt{KICKSTREAM\_SIGNED\_IN\_HEADER}, set to \texttt{x-ms-client-principal-id}.
 When \texttt{public\_view} is true, anonymous clients reach the app and the app
-keeps \texttt{/live} and \texttt{/match} read-only, sending studio pages to
-\texttt{/.auth/login/aad}.
+keeps \texttt{/live} and \texttt{/match} read-only, sending studio pages, the
+dashboard included, to \texttt{/.auth/login/aad}.
 When it is false, anonymous clients are redirected to login.
 \texttt{/guest/*}, \texttt{/api/guest/*}, and \texttt{/assets/*} stay open either way.
 
@@ -345,14 +456,29 @@ When it is false, anonymous clients are redirected to login.
   \draw[arr] (e) -- (f);
 \end{tikzpicture}
 \end{center}
-{\small\color{Muted} AzureADMyOrg. Public view keeps \texttt{/live} and \texttt{/match} read-only. Studio pages go to sign-in.\par}
+{\small\color{Muted} AzureADMyOrg. Public view keeps \texttt{/live} and \texttt{/match} read-only. Studio pages and \texttt{/dashboard} go to sign-in.\par}
+
+Only the studio's users can change an agent's instructions and connectors.
+A connector key is sent in the header the operator names, or as a bearer token,
+and is kept in the owner-only \texttt{.data/agent-secrets.json}, never shown again.
+Connector addresses are readable by anyone who can read \texttt{/api/agents}, so a
+key belongs in the key field, never in the address.
+Redirects are not followed.
+Connector answers reach the model as facts, never as instructions.
 
 Cosmos DB has \texttt{local\_authentication\_enabled = false}.
 The Container App's system-assigned identity holds Cosmos DB Built-in Data Contributor
 on that account only.
 Foundry is not created by Terraform.
 If \texttt{foundry\_resource\_id} is set, the same identity receives Azure AI User
-on that existing resource.
+on that existing resource, and signs in to Foundry with Entra ID rather than a key.
+
+Deploying from GitHub signs in through OIDC with no secret. The Entra app GitHub
+Actions uses is trusted only for this repository's \texttt{production} environment.
+It is an Owner of the subscription and holds two Microsoft Graph permissions,
+\texttt{Application.ReadWrite.OwnedBy} and \texttt{AppRoleAssignment.ReadWrite.All},
+so Terraform can register the studio's sign-in.
+Terraform state sits in a private storage account used with Entra ID.
 
 Container App secrets are the registry admin password, the Communication Services
 connection string, the Entra client secret, the Speech key, and, only when
@@ -380,6 +506,40 @@ Build uses \texttt{az acr build}, or local Docker with \texttt{-LocalBuild} or
 \texttt{deploy/destroy.ps1} asks before deleting the stack and the app registration
 unless \texttt{-Force} is passed.
 \texttt{deploy/destroy.sh} is the shell counterpart.
+
+\subsection{From GitHub}
+
+\texttt{.github/workflows/} holds two workflows.
+\textbf{CI} runs on every push and pull request: ruff, the pipeline tests, a check
+that both generated contract files match the schema, the web typecheck, tests and
+build, and \texttt{terraform validate}.
+\textbf{Deploy} runs after CI passes on \texttt{main}, or from the Actions tab, does
+what \texttt{deploy.sh} does, and waits until the new revision answers.
+It stays off until \texttt{deploy/github-setup.ps1} (or \texttt{.sh}) has created the
+OIDC app, the state storage account, and the repository variables
+\texttt{AZURE\_CLIENT\_ID}, \texttt{AZURE\_TENANT\_ID}, \texttt{AZURE\_SUBSCRIPTION\_ID},
+\texttt{TFSTATE\_RESOURCE\_GROUP}, \texttt{TFSTATE\_STORAGE\_ACCOUNT} and \texttt{STUDIO\_USERS}.
+\texttt{LLM\_API\_KEY} and \texttt{API\_FOOTBALL\_KEY} are repository secrets.
+
+\begin{center}
+\begin{tikzpicture}[
+  st/.style={draw=CommBlue, line width=0.6pt, fill=Wash, rounded corners=2pt,
+    align=center, font=\scriptsize, text=Ink, inner sep=1.2mm, minimum width=24mm, minimum height=9mm},
+  arr/.style={-{Stealth[length=1.6mm]}, draw=CommBlue, line width=0.6pt}
+]
+  \node[st] (p) {Push to main};
+  \node[st, right=6mm of p] (c) {CI: lint, tests,\\contracts, build};
+  \node[st, right=6mm of c] (o) {OIDC sign-in};
+  \node[st, right=6mm of o] (t) {Terraform\\apply};
+  \node[st, right=6mm of t, fill=CommBlue, text=white] (h) {/api/health\\answers};
+  \draw[arr] (p) -- (c);
+  \draw[arr] (c) -- (o);
+  \draw[arr] (o) -- (t);
+  \draw[arr] (t) -- (h);
+\end{tikzpicture}
+\end{center}
+
+\subsection{What Terraform creates}
 
 Providers: \texttt{azurerm} approximately 4.0, \texttt{azuread} approximately 3.0,
 \texttt{azapi} approximately 2.0, \texttt{random} approximately 3.6.
@@ -439,14 +599,14 @@ Startup runs every 10 seconds and allows 30 failures.
 Liveness waits 30 seconds, then every 30 seconds, and allows 6 failures.
 The payload reports the match, the stream state, and whether auto live is on.
 
-Defaults in variables, overridable from \texttt{terraform.tfvars}:
+Defaults in variables, overridable from \texttt{terraform.tfvars} or repository variables:
 \texttt{autolive} true, \texttt{public\_view} true, \texttt{real\_sources} false,
 \texttt{speech\_sku} S0, \texttt{speech\_daily\_chars} 200000,
 \texttt{match\_log\_ttl\_days} 90.
 Watch Log Analytics (30 days), \texttt{/api/health}, the per-destination status
-in the studio, the file share (Record to file plus Stream 24/7 fills 10 GiB),
-and the speech character cap (past it, captured auto-live speech goes quiet
-until midnight UTC).
+in the studio, the dashboard's output and auto live cards, the file share (Record
+to file plus Stream 24/7 fills 10 GiB), and the speech character cap (past it,
+captured auto-live speech goes quiet until midnight UTC).
 
 \section{Integrations and data sources}
 % area:integrations-and-data-sources
@@ -524,17 +684,21 @@ The bars are API-Football requests. They are provider limits, not a measured aud
 \end{tikzpicture}
 \end{center}
 
-Azure AI Speech is the voice the capture can hear.
+Azure AI Speech is the voice the capture can hear, in twenty languages.
 F0 allows 0.5 million characters a month; S0 bills per character.
 The daily cap defaults to 200000.
 Microsoft Foundry is used when both the project endpoint and the deployment name
-are set; otherwise \texttt{KICKSTREAM\_LLM\_BASE\_URL}, \texttt{KICKSTREAM\_LLM\_MODEL},
-and \texttt{KICKSTREAM\_LLM\_API\_KEY}.
+are set, signed in with Entra ID; otherwise \texttt{KICKSTREAM\_LLM\_BASE\_URL},
+\texttt{KICKSTREAM\_LLM\_MODEL}, and \texttt{KICKSTREAM\_LLM\_API\_KEY}.
 \texttt{KICKSTREAM\_LLM\_MAX\_CALLS} defaults to 60 narration calls a match.
+Agent connectors are the operator's own HTTP services: Kickstream posts
+\texttt{question}, \texttt{agent}, \texttt{agent\_name}, \texttt{match\_id} and
+\texttt{source} as JSON and reads a JSON answer field or plain text.
 Copilot web search uses Wikipedia, or Tavily when its key is set.
 The X and Tavily adapters are tested against documented payloads, not against
 those live services.
 Guest rooms use Communication Services, or \texttt{KICKSTREAM\_ROOMS=fake} locally.
+Reels can be finished in Clipchamp, which takes the reel as a file.
 
 \section{Assumptions, constraints, and risks}
 % area:assumptions-constraints-risks
@@ -542,12 +706,14 @@ Guest rooms use Communication Services, or \texttt{KICKSTREAM\_ROOMS=fake} local
 \subsection{Assumptions}
 
 The deploying operator can create the resource group, the Entra application, and
-the role assignments.
+the role assignments; deploying from GitHub needs a subscription Owner and a
+Global Administrator to grant the Graph permissions.
 The image can run ffmpeg and Chromium.
 Synthetic clubs are fictional, and a head-to-head is only matches this
 installation has finished.
 Viewers share narration; personalization is a gateway filter.
 A model is optional. Templates are the supported path when no endpoint is set.
+Connectors belong to the operator and are trusted to answer, not to instruct.
 
 \subsection{Constraints}
 
@@ -559,7 +725,9 @@ One replica only.
 Live feeds do not include ball positions.
 API-Football's free plan is about 100 requests a day.
 OpenLigaDB can arrive late, and its clock is estimated.
-Explainability and Ask Copilot are English.
+Explainability and Ask Copilot are English; auto live speaks twenty languages but
+labels its screens in three.
+Keyboard shortcuts are not implemented.
 The stream has no bed and no crowd.
 Reel in-points are fixed at 8 seconds before the moment, for 15 seconds.
 The current templates pull the image with the registry admin user and mount
@@ -585,9 +753,13 @@ The file share and the Cosmos log remain.
 
 Auto live can restart a 24/7 stream from saved settings.
 A studio encode does not resume itself.
-The default public view lets anyone watch \texttt{/live} and \texttt{/match} read-only.
+The default public view lets anyone watch \texttt{/live} and \texttt{/match} read-only,
+and chat with the agents there.
 An empty public-host list plus a tunnel exposes studio controls.
 A co-host invite is an operator credential.
+The GitHub deploy identity is a subscription Owner; protect the \texttt{production}
+environment and the \texttt{main} branch accordingly.
+A connector address is visible through \texttt{/api/agents}; a key placed in it leaks.
 S0 speech spends money per character, and the daily cap makes the captured voice
 go quiet rather than switching the encode to the browser voice.
 Record to file with Stream 24/7 fills the 10 GiB share.

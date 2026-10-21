@@ -73,6 +73,7 @@
         <p>The gateway fans the match out with Server-Sent Events and WebSockets. A page that joins late is not given the whole history of pitch scenes: it is replayed the newest pitch scene and the newest player report. WebSockets are accepted only from pages on the host the pipeline was reached at. Behind a proxy that rewrites <code>Host</code>, public names go in <code>KICKSTREAM_ALLOWED_HOSTS</code>. On the Container App, <code>KICKSTREAM_PUBLIC_HOSTS</code> is the app’s own FQDN, and requests through it reach only what the public-host gate allows.</p>
         <h2>Narration and agents</h2>
         <p>Narration is a second writer path from the match agents. Four Microsoft Agent Framework agents write when a model is configured: a Commentator and a Tactical Analyst on each key moment, a Recap Writer at half-time and full-time, and a Localizer into Spanish and Hindi. Each item is written once per mode and language and sent to every viewer on that variant, so model cost does not grow with the audience. Output is cached. If the model is slow, rate-limited, or unusable, that item falls back to a template and is marked scripted.</p>
+        <p>The seven match agents work in three analyst teams: the Match Reading Team (Event Interpreter, Tactical Analyst, Player Tracking Agent), the Forecast Team (Prediction Agent, Explainability Agent) and the Story Team (Visualization Agent, Highlights Agent). Narration and the agents’ chat share one Foundry client. Agent chat and Ask Copilot word their answers from the same recorded facts, plus the agent’s connectors when it has any. The unified analytics page (<code>/dashboard</code>) adds no new pipeline stage: it reads the match, fan, broadcast and auto-live streams the gateway already sends.</p>
         <p>The seven match agents compute structured findings. Only the Explainability Agent produces prose, in English, at most 20 explanations a match, from templates when no model is set. Switching an agent off is stored in <code>.data/agents.json</code>. Agents that listen to it then have less to work on.</p>
         <h2>Where state lives</h2>
         <table>
@@ -81,7 +82,7 @@
           </thead>
           <tbody>
             <tr><td>Match playback, studio session, encode</td><td>Process memory</td><td>Same, inside the one replica</td></tr>
-            <tr><td>Broadcasts, studio document, uploads, narration cache, fan zone, auto-live settings, stream keys, recordings, reels</td><td><code>.data/</code></td><td>Azure Files share <code>data</code>, mounted at <code>/data</code></td></tr>
+            <tr><td>Broadcasts, studio document, uploads, narration cache, fan zone, auto-live settings, agent switches, instructions and connectors, stream and connector keys, recordings, reels</td><td><code>.data/</code></td><td>Azure Files share <code>data</code>, mounted at <code>/data</code></td></tr>
             <tr><td>Match log: events, stats, narratives, agent findings</td><td>In-memory unless Cosmos settings are present</td><td>Cosmos DB database <code>kickstream</code>, container <code>match_log</code>, partition <code>/match_id</code></td></tr>
             <tr><td>Guest calls</td><td>Azure Communication Services when <code>KICKSTREAM_ACS_CONNECTION_STRING</code> is set; <code>KICKSTREAM_ROOMS=fake</code> for a silent local trial</td><td>The Communication Services resource the template creates</td></tr>
             <tr><td>Model</td><td>Foundry project, or any OpenAI-compatible chat endpoint. Templates if neither is set</td><td>Same variables. Foundry is not created by Terraform; an existing project can be named</td></tr>
@@ -101,6 +102,8 @@
           </tbody>
         </table>
         <p>Going live does not send a separate video file per platform. The studio’s clean output (<code>/studio?output</code>, 1920×1080) is opened in a hidden Chromium browser. ffmpeg encodes that picture once and copies the stream to every destination. Microsoft Edge is used when it is present. Auto live captures <code>/live?output</code> the same way.</p>
+        <h2>How it grows</h2>
+        <p><code>docs/architecture/scalable.html</code> draws the shape to grow into: one match owner, one encode, and viewers that scale apart. A viewer gateway would scale with viewers, a studio API with hosts, a match worker would hold one lease per match in Cosmos, and an encode worker would run one ffmpeg per live show. The stages inside a match stay the same. That note is a design, not what <code>deploy/terraform</code> creates today.</p>
       </section>
     </article>
   </main>

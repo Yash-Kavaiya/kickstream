@@ -83,6 +83,9 @@
           </svg>
           <figcaption>Terraform creates these resources and no others. Foundry is not one of them. Region default is centralindia.</figcaption>
         </figure>
+        <h2>Deploy from GitHub</h2>
+        <p><code>.github/workflows/</code> holds two workflows. <strong>CI</strong> runs on every push and pull request: ruff, the pipeline tests, a check that both generated contract files match the schema, the web typecheck, tests and build, and <code>terraform validate</code>. <strong>Deploy</strong> runs after CI passes on <code>main</code>, or from the Actions tab, does what <code>deploy.sh</code> does, and waits until the new revision answers on <code>/api/health</code>.</p>
+        <p>Deploy stays off until <code>deploy/github-setup.ps1</code> (or <code>.sh</code>) has run once, with the Azure CLI and the GitHub CLI signed in. It creates the OIDC app, a private storage account for Terraform state, and the repository variables <code>AZURE_CLIENT_ID</code>, <code>AZURE_TENANT_ID</code>, <code>AZURE_SUBSCRIPTION_ID</code>, <code>TFSTATE_RESOURCE_GROUP</code>, <code>TFSTATE_STORAGE_ACCOUNT</code> and <code>STUDIO_USERS</code>. Other settings that <code>terraform.tfvars</code> holds locally are repository variables here (<code>FOUNDRY_PROJECT_ENDPOINT</code>, <code>FOUNDRY_DEPLOYMENT</code>, <code>FOUNDRY_RESOURCE_ID</code>, <code>AUTOLIVE</code>, <code>SPEECH_SKU</code> and others); <code>LLM_API_KEY</code> and <code>API_FOOTBALL_KEY</code> are secrets.</p>
         <h2>Resources Terraform defines</h2>
         <table>
           <thead>
@@ -112,6 +115,8 @@
           <li>Container App logs in the Log Analytics workspace, kept 30 days.</li>
           <li><code>/api/health</code> for match, stream, and auto live.</li>
           <li>The studio top bar and the Stream tool for each destination: connecting, live, retrying, failed.</li>
+          <li>The unified analytics page (<code>/dashboard</code>): output, recent broadcasts, the agents’ runs and auto live on one screen.</li>
+          <li>The GitHub Actions runs: a failed CI stops the deploy.</li>
           <li>Disk on the file share. A Record to file destination left on under Stream 24/7 fills the share. Stream 24/7 is for platforms.</li>
           <li>Speech characters. Past <code>speech_daily_chars</code>, auto live falls back to the browser voice until midnight UTC, and a captured stream that needed Azure speech goes quiet.</li>
         </ul>

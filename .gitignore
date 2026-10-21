@@ -13,3 +13,4 @@ playwright-report/
 .data-e2e/
 .playwright-mcp/
 *.tsbuildinfo
+videos/

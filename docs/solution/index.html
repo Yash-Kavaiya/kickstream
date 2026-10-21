@@ -30,21 +30,35 @@
       <p class="ks-eyebrow">Solution overview and scope</p>
       <h1>Kickstream solution overview and scope</h1>
       <section data-area="solution-overview">
-        <p class="ks-lead">Kickstream is live-streaming software for football. A host creates a broadcast, composes scenes in the studio, and goes live to YouTube, X, Facebook and Twitch at once. What the program shows comes from a match event stream turned into live intelligence, AI narratives and recaps. Agents then cut the recording’s best moments into vertical reels.</p>
+        <p class="ks-lead">Kickstream is live-streaming software for football. A host creates a broadcast, composes scenes in the studio, and goes live to YouTube, X, Facebook and Twitch at once. What the program shows comes from a match event stream turned into live intelligence, AI narratives and recaps. Seven analyst agents, working in three teams, read the match as it happens; a unified analytics dashboard joins the match, the agents, the audience and the broadcasts on one page; auto live runs a channel by itself with a spoken commentator in twenty languages. Agents then cut the recording’s best moments into vertical reels.</p>
+        <p>The match is synthetic by default: a seeded simulator plays Northbridge FC against Harbour City, two fictional clubs, so every insight can be produced and replayed without licensed data. This set answers the challenge <em>The Synthetic Match Insights Engine for Premier League Studio</em>. Edition: 20 October 2026.</p>
         <figure class="ks-figure">
           <img src="figures/home.png" alt="Kickstream home during a synthetic match">
-          <figcaption>Local demo. Home shows the next broadcast, the program preview, and each destination. The match is synthetic.</figcaption>
+          <figcaption>Local demo. Home shows the next broadcast, a live program preview, the scene on air, the match feed, broadcasts and destinations. The match is synthetic.</figcaption>
         </figure>
         <div class="ks-pair">
           <figure class="ks-figure">
             <img src="figures/studio.png" alt="Kickstream studio with the program and the scene strip">
-            <figcaption>Studio. A scene strip under the stage switches the program with a click. Keyboard shortcuts are not implemented.</figcaption>
+            <figcaption>Studio at 39 minutes. A scene strip under the stage switches the program with a click. Keyboard shortcuts are not implemented.</figcaption>
           </figure>
           <figure class="ks-figure">
-            <img src="figures/match.png" alt="Kickstream match data for a synthetic fixture">
-            <figcaption>Match data. Seven agents, the agent flow, and the 3D pitch. Clubs are fictional.</figcaption>
+            <img src="figures/match.png" alt="Kickstream analyst teams for a synthetic fixture">
+            <figcaption>Analyst teams. Three team cards and the agent flow. Clubs are fictional.</figcaption>
           </figure>
         </div>
+        <figure class="ks-figure">
+          <img src="figures/dashboard.png" alt="Kickstream unified analytics during a synthetic match">
+          <figcaption>Unified analytics. Score, odds, expected goals, the agents at work, highlights, fans, time on air and auto live, live.</figcaption>
+        </figure>
+        <h2>What changed in this edition</h2>
+        <ul>
+          <li><strong>Teams of analyst agents.</strong> The seven match agents work as the Match Reading, Forecast and Story teams. <code>/match</code> is called Analyst teams.</li>
+          <li><strong>Unified analytics.</strong> <code>/dashboard</code> brings the match, the teams’ work, the players, the audience, the broadcasts and auto live onto one live page.</li>
+          <li><strong>Agent tools.</strong> Each agent takes custom instructions, up to three connectors of the operator’s own, and a chat.</li>
+          <li><strong>Auto live in twenty languages</strong>, each with matching Azure neural voices.</li>
+          <li><strong>Studio.</strong> One commentary for the program, nine background plates, element delete, a large solo camera frame, and a goal celebration.</li>
+          <li><strong>Operations.</strong> Deploy from GitHub with OIDC, match logs in Cosmos DB, and narration through a Microsoft Foundry project.</li>
+        </ul>
         <p>This set describes the software in this repository: the web studio, the Python pipeline, and the Azure resources <code>deploy/terraform</code> actually creates. It is the solution description an architect or operator can build from. It is not a store listing.</p>
         <div class="ks-note">
           <p>Kickstream does not implement Microsoft Marketplace SaaS fulfillment, an Entra purchase landing page, or a live Partner Center offer. The Entra application in <code>deploy/terraform/auth.tf</code> is a single-tenant studio gate for the deployer, not a buyer sign-in.</p>
@@ -56,11 +70,11 @@
           </div>
           <div class="ks-card">
             <h3>Match pipeline</h3>
-            <p>Ingest, interpret, explain, render, and personalize, plus seven match agents.</p>
+            <p>Ingest, interpret, explain, render, and personalize, plus seven agents in three analyst teams.</p>
           </div>
           <div class="ks-card">
             <h3>Azure deploy</h3>
-            <p>One Container App, Cosmos match log, Communication Services, Speech, Files, Registry.</p>
+            <p>One Container App, Cosmos match log, Communication Services, Speech, Files, Registry. Deployed from GitHub.</p>
           </div>
           <div class="ks-card">
             <h3>Local run</h3>
@@ -69,10 +83,10 @@
         </div>
         <h2>What is in scope</h2>
         <ul>
-          <li>The web app in <code>apps/web</code>: home (<code>/</code>), a broadcast (<code>/broadcasts/{id}</code>), that broadcast’s studio, <code>/studio</code>, match data (<code>/match</code>), a guest page (<code>/guest/{secret}</code>), and auto live (<code>/live</code>).</li>
+          <li>The web app in <code>apps/web</code>: home (<code>/</code>), a broadcast (<code>/broadcasts/{id}</code>), that broadcast’s studio, <code>/studio</code>, Analyst teams (<code>/match</code>), unified analytics (<code>/dashboard</code>), a guest page (<code>/guest/{secret}</code>), and auto live (<code>/live</code>).</li>
           <li>The pipeline in <code>services/pipeline</code>: FastAPI on port 8000, match simulation or a chosen source, analytics, narration, overlay, gateway (Server-Sent Events and WebSockets), output to platforms, fans, broadcasts, reels, and Ask Copilot.</li>
-          <li>The deployment in <code>deploy/</code>: Terraform for the resource group, and <code>deploy.ps1</code> / <code>deploy.sh</code> to build the image and apply it.</li>
-          <li>Languages on the match surface: English, Spanish, and Hindi. Commentary modes: Fan and Analyst.</li>
+          <li>The deployment in <code>deploy/</code>: Terraform for the resource group, <code>deploy.ps1</code> / <code>deploy.sh</code> to build the image and apply it, and <code>.github/workflows/</code> to test and deploy from GitHub.</li>
+          <li>Languages on the match surface: English, Spanish, and Hindi. Auto live speaks twenty. Commentary modes: Fan and Analyst.</li>
         </ul>
         <h2>What is out of scope</h2>
         <ul>
@@ -88,7 +102,7 @@
           </thead>
           <tbody>
             <tr><td><a href="architecture.html">Architecture and data flow</a></td><td>The one process, the pipeline stages, and where state lives.</td></tr>
-            <tr><td><a href="capabilities.html">Functional capabilities</a></td><td>Studio, agents, Copilot, fan zone, auto live, broadcasts, and reels.</td></tr>
+            <tr><td><a href="capabilities.html">Functional capabilities</a></td><td>Studio, analyst teams, agent tools, the dashboard, Copilot, fan zone, auto live, broadcasts, and reels.</td></tr>
             <tr><td><a href="security.html">Security, privacy, and identity</a></td><td>Local exposure, the Entra studio gate, secrets, and the match log.</td></tr>
             <tr><td><a href="operations.html">Deployment and operations</a></td><td>Terraform resources, probes, scale, and the deploy scripts.</td></tr>
             <tr><td><a href="integrations.html">Integrations and data sources</a></td><td>Platforms, match feeds, speech, models, and licences.</td></tr>
