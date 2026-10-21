@@ -1,9 +1,10 @@
 import { FluentProvider } from "@fluentui/react-components";
-import { type CSSProperties, type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
+import { type CSSProperties, type DragEvent, type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 import type { MatchStatus, Scene, SceneElement } from "../contracts";
 import { EASE, leave, MotionStyles, rise, usePresence } from "../motion/motion";
 import { darkTheme } from "../theme";
 import { isBackground, SceneBackground } from "./background";
+import { DRAG_TYPE, elementLabel } from "./edit/ElementLibrary";
 import { ElementView, type ProgramData } from "./elements";
 import { GoalCelebration, useGoalFlash } from "./GoalCelebration";
 import { CANVAS, GRID, moveBy, type Rect, rectOf, resizeBy, sameRect } from "./geometry";
@@ -18,6 +19,8 @@ interface SceneCanvasProps {
   onSelect?(elementId: string | null): void;
   /** Called once when a move or resize ends, with the whole element list. */
   onChange?(elements: SceneElement[]): void;
+  /** A library tile dropped on the canvas: its key and where, in canvas pixels. */
+  onDropItem?(key: string, at: { x: number; y: number }): void;
 }
 
 interface Gesture {
@@ -64,7 +67,7 @@ function Credit({ status, zIndex }: { status: MatchStatus; zIndex: number }) {
 }
 
 /** Draws a scene on the 16:9 canvas. The same component is the program and, with `editable`, the editor. */
-export function SceneCanvas({ scene, data, scale, editable = false, selectedId = null, onSelect, onChange }: SceneCanvasProps) {
+export function SceneCanvas({ scene, data, scale, editable = false, selectedId = null, onSelect, onChange, onDropItem }: SceneCanvasProps) {
   const [draft, setDraft] = useState<{ id: string; rect: Rect } | null>(null);
   const gesture = useRef<Gesture | null>(null);
   const plate = scene.elements.find(isBackground);
@@ -115,11 +118,24 @@ export function SceneCanvas({ scene, data, scale, editable = false, selectedId =
     if (!sameRect(rect, origin)) commit(element.id, rect);
   };
 
+  const accepts = (event: DragEvent) => editable && onDropItem !== undefined && event.dataTransfer.types.includes(DRAG_TYPE);
+  const over = (event: DragEvent) => {
+    if (!accepts(event)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  };
+  const drop = (event: DragEvent) => {
+    if (!accepts(event)) return;
+    event.preventDefault();
+    const box = event.currentTarget.getBoundingClientRect();
+    onDropItem?.(event.dataTransfer.getData(DRAG_TYPE), { x: (event.clientX - box.left) / scale, y: (event.clientY - box.top) / scale });
+  };
+
   return (
     // The broadcast is always dark, whatever theme the page around it uses.
     <FluentProvider theme={darkTheme} data-testid="scene-canvas"
       style={{ position: "relative", overflow: "hidden", width: CANVAS.width * scale, height: CANVAS.height * scale, backgroundColor: "#0B1220", flexShrink: 0 }}
-      onPointerDown={editable ? () => onSelect?.(null) : undefined}>
+      onPointerDown={editable ? () => onSelect?.(null) : undefined} onDragOver={editable ? over : undefined} onDrop={editable ? drop : undefined}>
       <MotionStyles />
       <div style={{ position: "relative", width: CANVAS.width, height: CANVAS.height, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
         {plate && (editable || plate.visible) && <SceneBackground props={plate.props} dim={editable && !plate.visible} />}
@@ -134,10 +150,10 @@ export function SceneCanvas({ scene, data, scale, editable = false, selectedId =
                 opacity: editable && !element.visible ? 0.35 : 1, transition: dragged ? "none" : GLIDE,
                 animation: leaving ? leave : rise(), pointerEvents: leaving ? "none" : undefined,
               }}>
-              <ElementView element={element} data={data} />
+              <ElementView element={element} data={editable ? { ...data, preview: true } : data} />
               {editable && !leaving && (
                 <>
-                  <span style={LABEL}>{element.type}</span>
+                  <span style={LABEL}>{elementLabel(element)}</span>
                   <div role="button" tabIndex={0} aria-label={`${element.type} element`} aria-pressed={selected}
                     style={{ ...HANDLE, outline: selected ? "6px solid #0F6CBD" : "2px dashed rgba(255, 255, 255, 0.5)" }}
                     onPointerDown={(event) => begin(event, element, "move")} onPointerMove={track} onPointerUp={finish}

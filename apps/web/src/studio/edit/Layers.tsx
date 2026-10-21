@@ -3,7 +3,7 @@ import { ArrowDownRegular, ArrowUpRegular, DismissRegular } from "@fluentui/reac
 import type { Scene, SceneElement } from "../../contracts";
 import { isBackground } from "../background";
 import { lower, raise } from "../geometry";
-import { WIDGET_BY_TYPE } from "./ElementLibrary";
+import { elementLabel } from "./ElementLibrary";
 
 const useStyles = makeStyles({
   list: { listStyleType: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: tokens.spacingVerticalS },
@@ -34,7 +34,7 @@ export function Layers({ scene, selectedId, onSelect, onChange }: LayersProps) {
           <Checkbox aria-label={`Show ${name}`} checked={element.visible} onChange={(_, data) => patch(element.id, { visible: data.checked === true })} />
           <Button className={styles.pick} size="small" appearance={element.id === selectedId ? "primary" : "subtle"}
             aria-label={`Select ${name}`} onClick={() => onSelect(element.id)}>
-            {isBackground(element) ? "Background" : (WIDGET_BY_TYPE.get(element.type)?.label ?? element.type)}
+            {isBackground(element) ? "Background" : elementLabel(element)}
           </Button>
           <Button size="small" appearance="subtle" icon={<ArrowUpRegular />} aria-label={`Bring ${name} forward`} onClick={() => onChange(raise(scene.elements, element.id))} />
           <Button size="small" appearance="subtle" icon={<ArrowDownRegular />} aria-label={`Send ${name} back`} onClick={() => onChange(lower(scene.elements, element.id))} />

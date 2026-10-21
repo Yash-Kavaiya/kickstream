@@ -2,7 +2,7 @@ import { Badge, Button, makeStyles, Text, tokens } from "@fluentui/react-compone
 import { CheckmarkRegular, LiveRegular, PlayRegular, SlideLayoutRegular } from "@fluentui/react-icons";
 import type { MatchStatus, Scene, SceneElement, Studio } from "../contracts";
 import { BackgroundPanel, isBackground } from "./background";
-import { ElementLibrary } from "./edit/ElementLibrary";
+import { droppedElement, ElementLibrary, libraryItem, MAX_ELEMENTS } from "./edit/ElementLibrary";
 import { Inspector } from "./edit/Inspector";
 import { Layers } from "./edit/Layers";
 import type { ProgramData } from "./elements";
@@ -76,6 +76,13 @@ export function EditLayout({
   const styles = useStyles();
   const [frame, scale] = useStageScale(reserve);
   const onAir = scene.id === studio.active_scene_id;
+  const dropItem = (key: string, at: { x: number; y: number }) => {
+    const item = libraryItem(key, scene.elements);
+    if (!item || scene.elements.length >= MAX_ELEMENTS) return;
+    const added = droppedElement(item, scene.elements, at);
+    onChange([...scene.elements, added]);
+    onSelect(added.id);
+  };
 
   return (
     <section className={styles.layout} aria-label="Edit layout">
@@ -104,7 +111,7 @@ export function EditLayout({
         </div>
         <div ref={frame} className={styles.frame}>
           <SceneCanvas key={scene.id} scene={scene} data={data} scale={scale} editable selectedId={selectedId}
-            onSelect={onSelect} onChange={(elements) => onChange(snapMove(scene.elements, elements))} />
+            onSelect={onSelect} onChange={(elements) => onChange(snapMove(scene.elements, elements))} onDropItem={dropItem} />
         </div>
         <div className={styles.side}>
           <Inspector scene={scene} selectedId={selectedId} onChange={onChange} onUpload={onUpload} status={status} onRename={onRename} />

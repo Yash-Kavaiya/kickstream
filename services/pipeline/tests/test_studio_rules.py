@@ -636,6 +636,25 @@ def test_a_cameras_element_keeps_its_name_tags_and_a_circle():
     assert made.props == {"names": False}
     circled = made.model_copy(update={"props": {"shape": "circle", "junk": True}})
     assert rules.normalize_element(circled).props == {"names": True, "shape": "circle"}
+
+
+def test_a_cameras_element_can_follow_one_person_or_their_microphone():
+    made = rules.normalize_element(
+        SceneElement(
+            id="c",
+            type="cameras",
+            x=0,
+            y=0,
+            width=400,
+            height=400,
+            layer=1,
+            visible=True,
+            props={"shape": "frame", "source": "guest", "slot": 9, "view": "audio"},
+        )
+    )
+    assert made.props == {"names": True, "shape": "frame", "source": "guest", "slot": 4, "view": "audio"}
+    mine = made.model_copy(update={"props": {"source": "me", "slot": 2, "view": "video", "shape": "star"}})
+    assert rules.normalize_element(mine).props == {"names": True, "source": "me"}
     plain = made.model_copy(update={"props": {}})
     assert rules.normalize_element(plain).props == {"names": True}
 

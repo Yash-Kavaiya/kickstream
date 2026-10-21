@@ -43,9 +43,10 @@ function soloFrame() {
   return { x: CANVAS.width - SOLO_MARGIN - SOLO_WIDTH, y: SOLO_MARGIN, width: SOLO_WIDTH, height };
 }
 
-/** People on stage must be seen. Alone, that is a large frame. With others, a row of circles. */
+/** People on stage must be seen. Alone, that is a large frame. With others, a row of circles. A scene placing any camera itself gets none. */
 export function withCamerasFallback(scene: Scene, cameras: readonly CameraTile[]): Scene {
-  if (cameras.length === 0 || scene.elements.some((element) => element.type === "cameras" && element.visible)) return scene;
+  const placed = scene.elements.some((element) => element.type === "cameras" && element.visible && element.props.view !== "audio");
+  if (cameras.length === 0 || placed) return scene;
   const solo = cameras.length === 1;
   const fallback = {
     id: "__cameras", type: "cameras" as const, ...(solo ? soloFrame() : camerasCorner(cameras.length)), layer: nextLayer(scene.elements), visible: true,

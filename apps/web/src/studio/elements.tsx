@@ -1,4 +1,5 @@
 import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
+import { THIS_COMPUTER } from "../calls/thisComputer";
 import { Pitch } from "../components/Pitch";
 import { StatsPanel } from "../components/StatsPanel";
 import { Timeline } from "../components/Timeline";
@@ -44,6 +45,8 @@ export interface ProgramData {
   fans?: FanZone | null;
   /** The people on stage, in order. */
   cameras?: readonly CameraTile[];
+  /** In the editor: a camera or microphone following no one yet shows a stand-in, so its shape and size can be seen. */
+  preview?: boolean;
   /** Puts a person's video into the element; returns what takes it out. Absent where there is no call. */
   renderVideo?: (acsId: string, element: HTMLElement) => () => void;
 }
@@ -221,8 +224,37 @@ const initials = (name: string) =>
 
 const CAMERA_GAP = 16;
 
-/** How one camera is drawn: a rounded box filling its grid cell, or a circle `diameter` across. */
-type CameraShape = { kind: "box" } | { kind: "circle"; diameter: number };
+/** How one camera is drawn: a rounded box or a square-cornered frame filling its grid cell, or a circle `diameter` across. */
+type CameraShape = { kind: "box" } | { kind: "frame" } | { kind: "circle"; diameter: number };
+
+/** The people a cameras element shows: everyone on stage, this computer's camera, or the guest in one place on stage. */
+export function camerasFor(tiles: readonly CameraTile[], props: Record<string, unknown>): CameraTile[] {
+  if (props.source === "me") return tiles.filter((tile) => tile.id === THIS_COMPUTER);
+  if (props.source === "guest") {
+    const slot = typeof props.slot === "number" ? props.slot : 1;
+    const guest = tiles.filter((tile) => tile.id !== THIS_COMPUTER)[slot - 1];
+    return guest ? [guest] : [];
+  }
+  return [...tiles];
+}
+
+/** What a cameras element is called in the editor: whose camera or microphone it is. */
+export function camerasLabel(props: Record<string, unknown>): string {
+  const who = props.source === "me" ? "My" : props.source === "guest" ? `Guest ${typeof props.slot === "number" ? props.slot : 1}` : "Everyone's";
+  return `${who} ${props.view === "audio" ? "microphone" : props.source === "me" || props.source === "guest" ? "camera" : "cameras"}`;
+}
+
+function frameStyle(shape: CameraShape): CSSProperties {
+  if (shape.kind === "circle") {
+    return { width: shape.diameter, height: shape.diameter, flex: "none", borderRadius: "50%", boxSizing: "border-box",
+      border: `${Math.max(3, Math.round(shape.diameter / 40))}px solid #FFFFFF`, boxShadow: "0 8px 24px rgba(0, 0, 0, 0.45)" };
+  }
+  // A box fills its cell, so one camera scales with the frame it is given. A frame is the same with square corners and a broadcast edge.
+  const corners = shape.kind === "frame"
+    ? { borderRadius: 4, border: "10px solid #0F6CBD", outline: "4px solid rgba(255, 255, 255, 0.92)", outlineOffset: -4 }
+    : { borderRadius: 28, border: "8px solid rgba(255, 255, 255, 0.92)" };
+  return { width: "100%", height: "100%", minWidth: 0, minHeight: 0, boxSizing: "border-box", boxShadow: "0 18px 50px rgba(0, 0, 0, 0.45)", ...corners };
+}
 
 function CameraFeed({ tile, names, renderVideo, language, shape = { kind: "box" } }: {
   tile: CameraTile; names: boolean; renderVideo?: ProgramData["renderVideo"]; language: Language; shape?: CameraShape;
@@ -234,16 +266,10 @@ function CameraFeed({ tile, names, renderVideo, language, shape = { kind: "box" 
   }, [tile.acsId, renderVideo]);
   const circle = shape.kind === "circle";
   const label = tile.present ? tile.name : `${tile.name} · ${t(language, "away")}`;
-  // A circle is ringed like a broadcast guest bubble. A box fills its cell, so one camera scales with the frame it is given.
-  const frame: CSSProperties = circle
-    ? { width: shape.diameter, height: shape.diameter, flex: "none", borderRadius: "50%", boxSizing: "border-box",
-        border: `${Math.max(3, Math.round(shape.diameter / 40))}px solid #FFFFFF`, boxShadow: "0 8px 24px rgba(0, 0, 0, 0.45)" }
-    : { width: "100%", height: "100%", minWidth: 0, minHeight: 0, borderRadius: 28, boxSizing: "border-box",
-        border: "8px solid rgba(255, 255, 255, 0.92)", boxShadow: "0 18px 50px rgba(0, 0, 0, 0.45)" };
   const initialsSize = circle ? Math.round(shape.diameter / 3) : 96;
   return (
-    <div data-testid="camera-tile" data-person={tile.id}
-      style={{ position: "relative", overflow: "hidden", backgroundColor: "#101828", ...frame }}>
+    <div data-testid="camera-tile" data-person={tile.id} data-shape={shape.kind}
+      style={{ position: "relative", overflow: "hidden", backgroundColor: "#101828", ...frameStyle(shape) }}>
       <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: initialsSize, fontWeight: 700, color: "rgba(255, 255, 255, 0.45)" }}>
         {initials(tile.name)}
       </div>
@@ -261,29 +287,109 @@ function CameraFeed({ tile, names, renderVideo, language, shape = { kind: "box" 
   );
 }
 
-/** The people on stage: a grid of boxes, or a row of equal circles as large as the element allows. */
-function CamerasView({ data, names, circles, width, height }: { data: ProgramData; names: boolean; circles: boolean; width: number; height: number }) {
-  const tiles = data.cameras ?? [];
+const LEVEL_EVERY_MS = 66;
+
+/** How loud a stream's microphone is, 0 to 1, about fifteen times a second; null where it cannot be heard (no sound track, or a guest in the call). */
+function useMicLevel(stream: MediaStream | null | undefined): number | null {
+  const [level, setLevel] = useState<number | null>(null);
+  useEffect(() => {
+    const Context = typeof window === "undefined" ? undefined : window.AudioContext;
+    if (!stream || stream.getAudioTracks().length === 0 || typeof Context !== "function") {
+      setLevel(null);
+      return;
+    }
+    const context = new Context();
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 512;
+    // Only measured, never played: the program's sound is connected elsewhere.
+    const source = context.createMediaStreamSource(stream);
+    source.connect(analyser);
+    const samples = new Uint8Array(analyser.fftSize);
+    const timer = window.setInterval(() => {
+      analyser.getByteTimeDomainData(samples);
+      let sum = 0;
+      for (const sample of samples) sum += ((sample - 128) / 128) ** 2;
+      setLevel(Math.min(1, Math.sqrt(sum / samples.length) * 4));
+    }, LEVEL_EVERY_MS);
+    return () => {
+      window.clearInterval(timer);
+      source.disconnect();
+      void context.close();
+    };
+  }, [stream]);
+  return level;
+}
+
+const BARS = [0.35, 0.6, 1, 0.6, 0.35];
+
+function MicIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" aria-hidden>
+      <rect x="9" y="3" width="6" height="11" rx="3" fill="#FFFFFF" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </svg>
+  );
+}
+
+/** Someone's microphone: their name, a microphone, and bars that move as they speak where the sound can be measured. */
+function MicBadge({ tile, names, language, shape }: { tile: CameraTile; names: boolean; language: Language; shape: CameraShape }) {
+  const level = useMicLevel(tile.stream);
+  const circle = shape.kind === "circle";
+  const heard = level ?? 0;
+  const label = tile.present ? tile.name : `${tile.name} · ${t(language, "away")}`;
+  const ring = circle ? `0 0 0 ${Math.round(4 + heard * shape.diameter * 0.12)}px rgba(16, 124, 16, ${0.35 + heard * 0.5})` : undefined;
+  const bars = (
+    <span data-testid="mic-level" data-level={level === null ? "" : level.toFixed(2)} style={{ display: "flex", alignItems: "center", gap: 6, height: 48 }}>
+      {BARS.map((weight, index) => (
+        <span key={index} style={{ width: 8, borderRadius: 4, height: `${Math.max(16, (level === null ? 0.3 : heard) * weight * 100)}%`,
+          backgroundColor: level === null ? "rgba(255, 255, 255, 0.4)" : "#54B054", transition: "height 80ms linear" }} />
+      ))}
+    </span>
+  );
+  return (
+    <div data-testid="mic-tile" data-person={tile.id} data-shape={shape.kind}
+      style={{ ...frameStyle(shape), position: "relative", overflow: "hidden", backgroundColor: "rgba(16, 24, 40, 0.92)", color: "#FFFFFF",
+        display: "flex", flexDirection: circle ? "column" : "row", alignItems: "center", justifyContent: "center", gap: circle ? 8 : 24,
+        padding: circle ? 0 : "0 32px", boxShadow: ring ?? frameStyle(shape).boxShadow, transition: "box-shadow 80ms linear" }}>
+      <MicIcon size={circle ? Math.round(shape.diameter / 3) : 64} />
+      {names && (
+        <span style={{ fontSize: circle ? Math.max(14, Math.round(shape.diameter / 11)) : 32, fontWeight: 600, maxWidth: circle ? "75%" : "60%",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {label}
+        </span>
+      )}
+      {!circle && bars}
+    </div>
+  );
+}
+
+/** The people an element shows: a grid of boxes or frames, or a row of equal circles as large as the element allows; as cameras, or as microphones. */
+function CamerasView({ data, props, width, height }: { data: ProgramData; props: Record<string, unknown>; width: number; height: number }) {
+  const followed = camerasFor(data.cameras ?? [], props);
+  const standIn = props.source === "me" ? "Me" : props.source === "guest" ? `Guest ${typeof props.slot === "number" ? props.slot : 1}` : "Guest";
+  const tiles = followed.length === 0 && data.preview ? [{ id: "preview", name: standIn, acsId: null, present: true }] : followed;
   if (tiles.length === 0) return null;
-  if (circles) {
+  const names = props.names !== false;
+  const audio = props.view === "audio";
+  const draw = (tile: CameraTile, shape: CameraShape) => audio
+    ? <MicBadge key={tile.id} tile={tile} names={names} language={data.language} shape={shape} />
+    : <CameraFeed key={tile.id} tile={tile} names={names} renderVideo={data.renderVideo} language={data.language} shape={shape} />;
+  if (props.shape === "circle") {
     const diameter = Math.max(1, Math.floor(Math.min(height, (width - CAMERA_GAP * (tiles.length - 1)) / tiles.length)));
     return (
       <div data-testid="program-cameras"
-        style={{ width: "100%", height: "100%", display: "flex", gap: CAMERA_GAP, alignItems: "center", justifyContent: "flex-end" }}>
-        {tiles.map((tile) => (
-          <CameraFeed key={tile.id} tile={tile} names={names} renderVideo={data.renderVideo} language={data.language} shape={{ kind: "circle", diameter }} />
-        ))}
+        style={{ width: "100%", height: "100%", display: "flex", gap: CAMERA_GAP, alignItems: "center", justifyContent: tiles.length === 1 ? "center" : "flex-end" }}>
+        {tiles.map((tile) => draw(tile, { kind: "circle", diameter }))}
       </div>
     );
   }
+  const shape: CameraShape = props.shape === "frame" ? { kind: "frame" } : { kind: "box" };
   const columns = tiles.length === 1 ? 1 : 2;
   const rows = tiles.length <= 2 ? 1 : 2;
   return (
     <div data-testid="program-cameras"
       style={{ width: "100%", height: "100%", minWidth: 0, minHeight: 0, display: "grid", gap: 16, gridTemplateColumns: `repeat(${columns}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)` }}>
-      {tiles.map((tile) => (
-        <CameraFeed key={tile.id} tile={tile} names={names} renderVideo={data.renderVideo} language={data.language} />
-      ))}
+      {tiles.map((tile) => draw(tile, shape))}
     </div>
   );
 }
@@ -345,6 +451,6 @@ export function ElementView({ element, data }: { element: SceneElement; data: Pr
     case "image":
       return <ImageView imageId={props.image_id} fit={props.fit} />;
     case "cameras":
-      return <CamerasView data={data} names={props.names !== false} circles={props.shape === "circle"} width={element.width} height={element.height} />;
+      return <CamerasView data={data} props={props} width={element.width} height={element.height} />;
   }
 }

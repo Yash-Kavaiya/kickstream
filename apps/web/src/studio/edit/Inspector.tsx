@@ -4,6 +4,7 @@ import { type ChangeEvent, type KeyboardEvent, useEffect, useState } from "react
 import { ZOOM_RANGE } from "../../agents/Pitch3D";
 import type { MatchStatus, Scene, SceneElement } from "../../contracts";
 import { isBackground } from "../background";
+import { CANVAS, clampRect, type Rect, rectOf } from "../geometry";
 import { heldView } from "../widgets";
 
 const NAME_MAX = 60;
@@ -34,6 +35,85 @@ function ViewSlider({ label, value, min, max, step, format, onCommit }: {
       <Slider min={min} max={max} step={step} value={draft} onChange={(_, data) => setDraft(data.value)}
         input={{ "aria-valuetext": format(draft), onPointerUp: commit, onKeyUp: commit, onBlur: commit }} />
     </Field>
+  );
+}
+
+/** A number saved when the field is left or Enter is pressed, not at every keystroke. */
+function NumberField({ label, value, onCommit }: { label: string; value: number; onCommit(value: number): void }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => setDraft(String(value)), [value]);
+  const commit = () => {
+    const next = Math.round(Number(draft));
+    if (Number.isFinite(next) && next !== value) onCommit(next);
+    else setDraft(String(value));
+  };
+  return (
+    <Field label={label}>
+      <Input type="number" value={draft} style={{ minWidth: 0 }} input={{ style: { minWidth: 0 } }} onChange={(_, data) => setDraft(data.value)} onBlur={commit}
+        onKeyDown={(event) => event.key === "Enter" && event.currentTarget.blur()} />
+    </Field>
+  );
+}
+
+const SIZES = [
+  { key: "small", label: "Small", share: 0.2 },
+  { key: "medium", label: "Medium", share: 0.33 },
+  { key: "large", label: "Large", share: 0.5 },
+  { key: "full", label: "Full screen", share: 1 },
+];
+const PLACES = ["top-left", "top", "top-right", "left", "centre", "right", "bottom-left", "bottom", "bottom-right"] as const;
+const PLACE_LABEL: Record<(typeof PLACES)[number], string> = {
+  "top-left": "Top left", top: "Top", "top-right": "Top right", left: "Left", centre: "Centre", right: "Right",
+  "bottom-left": "Bottom left", bottom: "Bottom", "bottom-right": "Bottom right",
+};
+const MARGIN = 40;
+
+/** A preset size, `share` of the canvas width, keeping the element's shape; a circle stays square. Full screen fills the canvas. */
+export function sizedRect(rect: Rect, share: number, square: boolean): Rect {
+  if (share >= 1) return square ? clampRect({ x: (CANVAS.width - CANVAS.height) / 2, y: 0, width: CANVAS.height, height: CANVAS.height }) : { x: 0, y: 0, ...CANVAS };
+  const width = Math.round((square ? CANVAS.height : CANVAS.width) * share / 20) * 20;
+  const height = square ? width : Math.round(width * (rect.height / rect.width) / 20) * 20;
+  const centre = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+  return clampRect({ x: Math.round(centre.x - width / 2), y: Math.round(centre.y - height / 2), width, height });
+}
+
+/** The element moved to a corner, an edge's middle or the centre of the canvas, a margin in from the edges. */
+export function placedRect(rect: Rect, place: (typeof PLACES)[number]): Rect {
+  const column = place.endsWith("left") || place === "left" ? 0 : place.endsWith("right") || place === "right" ? 2 : 1;
+  const row = place.startsWith("top") ? 0 : place.startsWith("bottom") ? 2 : 1;
+  const xs = [MARGIN, (CANVAS.width - rect.width) / 2, CANVAS.width - MARGIN - rect.width];
+  const ys = [MARGIN, (CANVAS.height - rect.height) / 2, CANVAS.height - MARGIN - rect.height];
+  return clampRect({ ...rect, x: Math.round(xs[column]), y: Math.round(ys[row]) });
+}
+
+/** Where the element is and how big: preset sizes and places, or exact pixels on the 1920 x 1080 canvas. */
+function Placement({ element, onPlace }: { element: SceneElement; onPlace(rect: Rect): void }) {
+  const rect = rectOf(element);
+  const square = element.type === "cameras" && element.props.shape === "circle";
+  const set = (key: keyof Rect) => (value: number) => onPlace(clampRect({ ...rect, [key]: value }));
+  return (
+    <>
+      <Text weight="semibold">Size and place</Text>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: tokens.spacingHorizontalXS }} role="group" aria-label="Size">
+        {SIZES.map((size) => (
+          <Button key={size.key} size="small" onClick={() => onPlace(sizedRect(rect, size.share, square))}>{size.label}</Button>
+        ))}
+      </div>
+      <Field label="Move to">
+        <Select value="" onChange={(_, data) => data.value && onPlace(placedRect(rect, data.value as (typeof PLACES)[number]))}>
+          <option value="">Choose a place…</option>
+          {PLACES.map((place) => (
+            <option key={place} value={place}>{PLACE_LABEL[place]}</option>
+          ))}
+        </Select>
+      </Field>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: tokens.spacingHorizontalS }}>
+        <NumberField label="X" value={rect.x} onCommit={set("x")} />
+        <NumberField label="Y" value={rect.y} onCommit={set("y")} />
+        <NumberField label="Width" value={rect.width} onCommit={(value) => onPlace(clampRect({ ...rect, width: value, height: square ? value : rect.height }))} />
+        <NumberField label="Height" value={rect.height} onCommit={(value) => onPlace(clampRect({ ...rect, height: value, width: square ? value : rect.width }))} />
+      </div>
+    </>
   );
 }
 
@@ -203,10 +283,38 @@ export function Inspector({ scene, selectedId, onChange, onUpload, status = null
       )}
       {selected.type === "cameras" && (
         <>
-          <Field label="Shape" hint="Circles: one round camera for each person on stage, side by side">
-            <Select value={selected.props.shape === "circle" ? "circle" : "box"} onChange={(_, data) => setProp(selected, "shape", data.value)}>
-              <option value="box">Boxes</option>
-              <option value="circle">Circles</option>
+          <Field label="Who">
+            <Select value={selected.props.source === "me" ? "me" : selected.props.source === "guest" ? `guest-${typeof selected.props.slot === "number" ? selected.props.slot : 1}` : "all"}
+              onChange={(_, data) => {
+                const [source, slot] = data.value.split("-");
+                const { source: _source, slot: _slot, ...rest } = selected.props;
+                patch(selected.id, { props: source === "all" ? rest : source === "me" ? { ...rest, source } : { ...rest, source, slot: Number(slot) } });
+              }}>
+              <option value="all">Everyone on stage</option>
+              <option value="me">Me (this computer)</option>
+              {[1, 2, 3, 4].map((slot) => (
+                <option key={slot} value={`guest-${slot}`}>Guest {slot}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Show" hint={selected.props.view === "audio" ? "The level moves for this computer's microphone on the program." : undefined}>
+            <Select value={selected.props.view === "audio" ? "audio" : "video"} onChange={(_, data) => setProp(selected, "view", data.value)}>
+              <option value="video">Camera</option>
+              <option value="audio">Microphone</option>
+            </Select>
+          </Field>
+          <Field label="Shape" hint="Circles: one round camera for each person, side by side">
+            <Select value={selected.props.shape === "circle" || selected.props.shape === "frame" ? String(selected.props.shape) : "box"}
+              onChange={(_, data) => {
+                const props = { ...selected.props, shape: data.value };
+                // A circle is drawn as large as fits, so one person's circle is made square to fill its element.
+                const single = selected.props.source === "me" || selected.props.source === "guest";
+                const side = Math.min(selected.width, selected.height);
+                patch(selected.id, data.value === "circle" && single ? { props, width: side, height: side } : { props });
+              }}>
+              <option value="box">Rounded box</option>
+              <option value="frame">Frame</option>
+              <option value="circle">Circle</option>
             </Select>
           </Field>
           <Switch label="Name tags" checked={selected.props.names !== false} onChange={(_, data) => setProp(selected, "names", data.checked)} />
@@ -225,8 +333,10 @@ export function Inspector({ scene, selectedId, onChange, onUpload, status = null
           </Field>
         </>
       )}
-      {isBackground(selected) && (
+      {isBackground(selected) ? (
         <Text size={200}>Themes, the picture and opacity are under Scene background.</Text>
+      ) : (
+        <Placement element={selected} onPlace={(rect) => patch(selected.id, rect)} />
       )}
       <Button appearance="secondary" icon={<DeleteRegular />}
         onClick={() => onChange(scene.elements.filter((element) => element.id !== selected.id))}>

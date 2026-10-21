@@ -130,8 +130,14 @@ def _normalize_props(type_: str, props: dict) -> dict:
         return _image_props(props)
     if type_ == "cameras":
         kept = {"names": props.get("names", True) is not False}
-        if props.get("shape") == "circle":
-            kept["shape"] = "circle"
+        if props.get("shape") in ("circle", "frame"):
+            kept["shape"] = props["shape"]
+        if props.get("source") in ("me", "guest"):
+            kept["source"] = props["source"]
+        if kept.get("source") == "guest":
+            kept["slot"] = _int_prop(props, "slot", 1, 1, 4)
+        if props.get("view") == "audio":
+            kept["view"] = "audio"
         return kept
     if type_ == "chart":
         return {"metric": _choice_prop(props, "metric", "overview", CHART_METRICS)}
