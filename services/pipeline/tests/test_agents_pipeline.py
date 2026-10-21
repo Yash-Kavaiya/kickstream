@@ -1,4 +1,5 @@
 import asyncio
+import time
 from collections import Counter
 
 import pytest
@@ -237,10 +238,14 @@ def test_an_unknown_agent_cannot_be_switched(client):
 def test_intelligence_is_the_latest_output_of_every_agent(client):
     assert client.get("/api/matches/m-9/intelligence").status_code == 404
     client.post("/api/matches", json={"speed": 600})
-    for _ in range(200):
+    # Waits on time, not on a number of requests: the faster a request, the less of the match 200 of them cover.
+    deadline = time.monotonic() + 30
+    while True:
         body = client.get("/api/matches/m-1/intelligence").json()
-        if body["minute"] >= 90 and body["runs"]:
+        finished = body["plays"] and body["plays"][-1]["type"] == "full_time"
+        if (finished and body["runs"]) or time.monotonic() > deadline:
             break
+        time.sleep(0.01)
     doc = MatchIntelligence.model_validate(body)
     assert doc.tactics and doc.prediction and doc.pitch and doc.player
     assert len(doc.plays) == 10 and doc.plays[-1].type == "full_time"
