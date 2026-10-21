@@ -1,13 +1,14 @@
 import asyncio
+import json
 
 from kickstream.adapters.memory_bus import InMemoryEventBus
 from kickstream.adapters.memory_store import InMemoryMatchStore
 from kickstream.adapters.sse_broadcaster import InProcessBroadcaster
-from kickstream.contracts import MatchStatus, Narrative, ViewerProfile
+from kickstream.contracts import Envelope, MatchStatus, Narrative, ViewerProfile
 from kickstream.domain.teams import AWAY, HOME
-from kickstream.gateway.personalize import to_envelope
+from kickstream.gateway.personalize import to_envelope, to_json
 from kickstream.gateway.recorder import Recorder
-from kickstream.gateway.stream import stream_items
+from kickstream.gateway.stream import stream_items, stream_json
 from kickstream.ports.bus import EVENTS, INSIGHTS, NARRATIVES, STATUS
 from tests.factories import MATCH, event, moment, stats
 
@@ -106,6 +107,33 @@ def test_only_the_viewers_variant_of_a_narrative_is_delivered():
     assert [e.type for e in delivered] == ["match_status", "match_event", "key_moment", "narrative"]
     assert [e.id for e in delivered] == sorted(e.id for e in delivered)
     assert delivered[0].payload["home"]["name"] == "Northbridge FC"
+
+
+def test_the_json_a_viewer_is_sent_is_the_envelope_as_json():
+    _, _, _, recorder = wired()
+    recorder.record(MATCH, STATUS_LIVE)
+    accented = narrative(team="home").model_copy(update={"text": 'Golazo de Peña \u2014 "top" corner'})
+    logged = [recorder.record(MATCH, accented), *items()]
+    for profile in (FAN_EN, ViewerProfile(mode="analyst", language="es", club="nbr", player="hbc-9")):
+        for item in logged:
+            envelope, text = to_envelope(item, profile), to_json(item, profile)
+            if envelope is None:
+                assert text is None
+            else:
+                assert json.loads(text) == json.loads(envelope.model_dump_json())
+                assert Envelope.model_validate_json(text) == envelope
+
+
+async def test_the_json_stream_sends_each_viewer_s_envelopes_with_their_ids():
+    _, store, broadcaster, recorder = wired()
+    recorder.record(MATCH, STATUS_LIVE)
+    recorder.record(MATCH, narrative("analyst", "es"))
+    recorder.record(MATCH, narrative("fan", "en"))
+    stream = stream_json(store, broadcaster, MATCH, FAN_EN)
+    sent = [await anext(stream) for _ in range(2)]
+    await stream.aclose()
+    assert [item_id for item_id, _ in sent] == [1, 3]
+    assert [json.loads(text)["type"] for _, text in sent] == ["match_status", "narrative"]
 
 
 def test_favorites_highlight_key_moments_and_narratives_only():
@@ -208,4 +236,4 @@ async def test_closing_a_stream_releases_its_feed():
     stream = stream_items(store, broadcaster, MATCH, FAN_EN)
     await anext(stream)
     await stream.aclose()
-    assert broadcaster._feeds[MATCH] == []
+    assert MATCH not in broadcaster._feeds, "a match with no viewers left is forgotten"

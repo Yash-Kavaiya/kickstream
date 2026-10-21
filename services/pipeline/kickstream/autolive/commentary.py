@@ -180,27 +180,46 @@ def _fact(language: str, f: MatchFacts, kind: str) -> str | None:
     if kind == "stats" and f.stats is not None:
         home, away = f.stats.home, f.stats.away
         return _say(
-            language, "stats", home=f.name("home"), away=f.name("away"),
-            hxg=f"{home.xg:.2f}", hshots=home.shots, axg=f"{away.xg:.2f}", ashots=away.shots,
+            language,
+            "stats",
+            home=f.name("home"),
+            away=f.name("away"),
+            hxg=f"{home.xg:.2f}",
+            hshots=home.shots,
+            axg=f"{away.xg:.2f}",
+            ashots=away.shots,
         )
     if kind == "possession" and f.stats is not None:
         home, away = f.stats.home, f.stats.away
         side = "home" if home.possession >= away.possession else "away"
         team = home if side == "home" else away
         return _say(
-            language, "possession", side=f.name(side), share=f"{max(home.possession, away.possession):.0f}",
+            language,
+            "possession",
+            side=f.name(side),
+            share=f"{max(home.possession, away.possession):.0f}",
             accuracy=f"{team.pass_accuracy:.0f}",
         )
     if kind == "prediction" and f.prediction is not None:
         guess = f.prediction
         return _say(
-            language, "prediction", home=f.name("home"), away=f.name("away"),
-            home_pct=pct(guess.win_home), draw=pct(guess.draw), away_pct=pct(guess.win_away),
+            language,
+            "prediction",
+            home=f.name("home"),
+            away=f.name("away"),
+            home_pct=pct(guess.win_home),
+            draw=pct(guess.draw),
+            away_pct=pct(guess.win_away),
         )
     if kind == "next_goal" and f.prediction is not None:
         guess = f.prediction
         side = "home" if guess.next_goal_home >= guess.next_goal_away else "away"
-        return _say(language, "next_goal", side=f.name(side), chance=pct(max(guess.next_goal_home, guess.next_goal_away)))
+        return _say(
+            language,
+            "next_goal",
+            side=f.name(side),
+            chance=pct(max(guess.next_goal_home, guess.next_goal_away)),
+        )
     if kind == "momentum" and f.stats is not None:
         swing = f.stats.momentum
         if abs(swing) < 0.15:
@@ -208,22 +227,37 @@ def _fact(language: str, f: MatchFacts, kind: str) -> str | None:
         return _say(language, "momentum", side=f.name("home" if swing > 0 else "away"))
     if kind == "player" and (player := f.top_player()) is not None:
         return _say(
-            language, "player", name=player.name, team=f.name(player.team),
-            rating=f"{player.rating:.1f}", touches=player.touches, goals=player.goals,
+            language,
+            "player",
+            name=player.name,
+            team=f.name(player.team),
+            rating=f"{player.rating:.1f}",
+            touches=player.touches,
+            goals=player.goals,
         )
     if kind == "moment" and f.moments:
         moment = f.moments[-1]
         what = _say(language, moment.kind if moment.kind in PHRASES[language] else "big_chance")
         who = f.player_name(moment.player_id)
         if who:
-            return _say(language, "moment_by", what=what, player=who, team=f.name(moment.team), minute=moment.minute)
+            return _say(
+                language, "moment_by", what=what, player=who, team=f.name(moment.team), minute=moment.minute
+            )
         return _say(language, "moment", what=what, team=f.name(moment.team), minute=moment.minute)
-    if kind == "next_action" and f.prediction is not None and f.prediction.next_actions and f.prediction.possession:
+    if (
+        kind == "next_action"
+        and f.prediction is not None
+        and f.prediction.next_actions
+        and f.prediction.possession
+    ):
         best = max(f.prediction.next_actions, key=lambda action: action.probability)
         move = best.action if best.action in {"pass", "shot", "turnover"} else "pass"
         return _say(
-            language, "next_action", side=f.name(f.prediction.possession),
-            action=_say(language, move), chance=pct(best.probability),
+            language,
+            "next_action",
+            side=f.name(f.prediction.possession),
+            action=_say(language, move),
+            chance=pct(best.probability),
         )
     return None
 
@@ -266,21 +300,39 @@ def _in_language(
         parts.append(_say(language, "waiting_open" if opening else "waiting"))
         return _join(*parts)[:MAX_CHARS]
     if status.score_home == status.score_away:
-        parts.append(_say(language, "level", home=status.home.name, away=status.away.name, n=status.score_home))
+        parts.append(
+            _say(language, "level", home=status.home.name, away=status.away.name, n=status.score_home)
+        )
     else:
         lead, trail = ("home", "away") if status.score_home > status.score_away else ("away", "home")
-        parts.append(_say(
-            language, "lead", lead=f.name(lead), trail=f.name(trail),
-            high=max(status.score_home, status.score_away), low=min(status.score_home, status.score_away),
-        ))
-    clock = {"pre_match": "pre_match", "half_time": "half_time", "finished": "finished", "abandoned": "abandoned"}.get(status.state)
+        parts.append(
+            _say(
+                language,
+                "lead",
+                lead=f.name(lead),
+                trail=f.name(trail),
+                high=max(status.score_home, status.score_away),
+                low=min(status.score_home, status.score_away),
+            )
+        )
+    clock = {
+        "pre_match": "pre_match",
+        "half_time": "half_time",
+        "finished": "finished",
+        "abandoned": "abandoned",
+    }.get(status.state)
     parts.append(_say(language, clock) if clock else _say(language, "minute", n=max(status.minute, 1)))
     parts.append(_one(language, f, *_SPOKEN.get(scene.id, ("moment", "stats"))))
     return _join(*parts)[:MAX_CHARS]
 
 
 def scripted(
-    scene: AutoLiveScene, f: MatchFacts, fans: FanZone | None, *, opening: bool, rng: random.Random,
+    scene: AutoLiveScene,
+    f: MatchFacts,
+    fans: FanZone | None,
+    *,
+    opening: bool,
+    rng: random.Random,
     language: str = "en",
 ) -> str:
     """Commentary from templates: who is on screen, the score, then what this screen is about."""
@@ -335,7 +387,13 @@ class CommentaryService:
         return len(self._calls) < self._per_hour
 
     async def write(
-        self, scene: AutoLiveScene, facts: MatchFacts, fans: FanZone | None, *, opening: bool, language: str = "en",
+        self,
+        scene: AutoLiveScene,
+        facts: MatchFacts,
+        fans: FanZone | None,
+        *,
+        opening: bool,
+        language: str = "en",
     ) -> tuple[str, str]:
         """The text and where it came from: "model" or "scripted"."""
         language = known(language)

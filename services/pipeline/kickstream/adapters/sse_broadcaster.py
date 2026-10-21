@@ -33,15 +33,19 @@ class _Feed:
 
 
 class InProcessBroadcaster:
-    """Fans a match log out to connected viewers. A viewer that falls behind is disconnected."""
+    """Fans a match log out to connected viewers. A viewer that falls behind is disconnected.
+
+    Viewers are kept per match in an insertion-ordered set, so one leaving is O(1), and a match
+    with no viewers left is forgotten.
+    """
 
     def __init__(self) -> None:
-        self._feeds: dict[str, list[_Feed]] = {}
+        self._feeds: dict[str, dict[_Feed, None]] = {}
 
     def subscribe(self, match_id: str, maxsize: int = 512) -> _Feed:
-        feeds = self._feeds.setdefault(match_id, [])
-        feed = _Feed(maxsize, feeds.remove)
-        feeds.append(feed)
+        feeds = self._feeds.setdefault(match_id, {})
+        feed = _Feed(maxsize, lambda closed: self._leave(match_id, closed))
+        feeds[feed] = None
         return feed
 
     def publish(self, item: LogItem) -> None:
@@ -50,3 +54,11 @@ class InProcessBroadcaster:
                 feed.close()
             else:
                 feed.queue.put_nowait(item)
+
+    def _leave(self, match_id: str, feed: _Feed) -> None:
+        feeds = self._feeds.get(match_id)
+        if feeds is None:
+            return
+        feeds.pop(feed, None)
+        if not feeds:
+            del self._feeds[match_id]

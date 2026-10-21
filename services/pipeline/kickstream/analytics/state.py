@@ -217,10 +217,12 @@ def apply(
     state: MatchState, event: MatchEvent, cfg: AnalyticsConfig, *, snapshots: bool = True
 ) -> list[KeyMoment | StatsSnapshot | PressureSnapshot]:
     at = event.minute * 60 + event.second
-    decay = 0.5 ** (max(0.0, at - state.clock) / cfg.half_life_s)
+    elapsed = at - state.clock
     state.clock = at
-    for side in SIDES:
-        state.grid[side] = [value * decay for value in state.grid[side]]
+    if elapsed > 0:  # events in the same second leave the grid as it is
+        decay = 0.5 ** (elapsed / cfg.half_life_s)
+        for side in SIDES:
+            state.grid[side] = [value * decay for value in state.grid[side]]
 
     out: list = [*_record(state, event, cfg), *_swing(state, event, cfg), *_sustained(state, event, cfg)]
     if not snapshots:

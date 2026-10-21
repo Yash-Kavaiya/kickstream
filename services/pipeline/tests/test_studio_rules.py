@@ -685,7 +685,9 @@ def test_a_scene_background_keeps_its_theme_picture_and_opacity():
         "theme": "super-league",
         "opacity": 0.4,
     }
-    unknown = rules.normalize_element(element(id="bg", type="image", props={"role": "background", "theme": "crest", "opacity": 5}))
+    unknown = rules.normalize_element(
+        element(id="bg", type="image", props={"role": "background", "theme": "crest", "opacity": 5})
+    )
     assert unknown.props["theme"] == "night"
     assert unknown.props["opacity"] == 1
 

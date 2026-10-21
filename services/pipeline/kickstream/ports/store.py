@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Protocol
 
 from pydantic import BaseModel
@@ -17,6 +18,17 @@ class LogItem:
     mode: str | None = None
     team_id: str | None = None
     player_id: str | None = None
+
+    # Worked out once per item, however many viewers it is sent to.
+    @cached_property
+    def payload_data(self) -> dict:
+        """The payload as JSON-ready data."""
+        return self.payload.model_dump(mode="json")
+
+    @cached_property
+    def payload_json(self) -> str:
+        """The payload as JSON text."""
+        return self.payload.model_dump_json()
 
 
 class MatchStore(Protocol):

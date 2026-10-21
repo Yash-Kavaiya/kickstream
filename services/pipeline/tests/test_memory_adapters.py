@@ -77,6 +77,31 @@ def test_store_assigns_increasing_ids_per_match_and_reads_after_an_id():
     assert second.team_id == "nbr" and second.player_id == "nbr-9"
 
 
+def test_store_reads_and_continues_a_restored_log_with_gaps_in_its_ids():
+    store = InMemoryMatchStore()
+    kept = [store.append("m-0", "match_event", 0, event(seq, "pass")) for seq in range(1, 6)]
+    store.restore(MATCH, [kept[4], kept[0], kept[2]])
+    assert [item.id for item in store.read(MATCH, after_id=1)] == [3, 5]
+    assert [item.id for item in store.read(MATCH, after_id=4)] == [5]
+    assert store.read(MATCH, after_id=5) == []
+    assert store.append(MATCH, "match_event", 0, event(6, "pass")).id == 6
+
+
+def test_a_log_item_works_out_its_payload_data_once():
+    item = InMemoryMatchStore().append(MATCH, "match_event", 0, event(1, "kickoff"))
+    assert item.payload_data == item.payload.model_dump(mode="json")
+    assert item.payload_data is item.payload_data
+
+
+async def test_closing_the_last_subscription_to_a_topic_forgets_the_topic():
+    bus = InMemoryEventBus()
+    events, both = bus.subscribe(EVENTS), bus.subscribe(EVENTS, INSIGHTS)
+    both.close()
+    assert set(bus._by_topic) == {EVENTS}
+    events.close()
+    assert bus._by_topic == {}
+
+
 async def test_broadcaster_fans_out_per_match():
     store, broadcaster = InMemoryMatchStore(), InProcessBroadcaster()
     one, two, elsewhere = (

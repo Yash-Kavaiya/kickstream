@@ -21,9 +21,16 @@ def zone_index(x: float, y: float) -> int:
     return row * COLS + col
 
 
-def attacking_third(side: Side) -> tuple[int, ...]:
-    cols = (COLS - 2, COLS - 1) if side == "home" else (0, 1)
+def _third(cols: tuple[int, int]) -> tuple[int, ...]:
     return tuple(row * COLS + col for row in range(ROWS) for col in cols)
+
+
+# Worked out once: the analytics fold asks for these on every event.
+_ATTACKING_THIRD: dict[Side, tuple[int, ...]] = {"home": _third((COLS - 2, COLS - 1)), "away": _third((0, 1))}
+
+
+def attacking_third(side: Side) -> tuple[int, ...]:
+    return _ATTACKING_THIRD[side]
 
 
 def xg(attacking_x: float, y: float) -> float:
