@@ -1,0 +1,4 @@
+Microsoft Azure Architecture Icons and the Microsoft Entra ID architecture icon are included
+only so the Kickstream submission diagrams can name those services. Microsoft permits these
+icons in architectural diagrams, training materials, and documentation. Microsoft reserves
+all other rights. Do not crop, flip, rotate, or distort them.

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kickstream operational flow</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #F4F7FB; width: 2560px; height: 1440px; overflow: hidden; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#0078D4"/>
+    </marker>
+    <marker id="arrw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#FFFFFF"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#0E7A3D"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="2560" height="1440" rx="0" fill="#F4F7FB" stroke="none" stroke-width="0"/>
+  <rect x="0" y="0" width="2560" height="78" rx="0" fill="#0B3A67" stroke="none" stroke-width="0"/>
+  <rect x="24" y="18" width="22" height="22" rx="4" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <rect x="24" y="46" width="22" height="8" rx="2" fill="#50E6FF" stroke="none" stroke-width="0"/>
+  <text x="56" y="38" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">Kickstream</text>
+  <text x="56" y="62" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#C5DDF5">Football live broadcast</text>
+  <text x="2532" y="38" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="30" font-weight="700" fill="#FFFFFF">Operational flow</text>
+  <text x="2532" y="62" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#D6E6F5">Stages, agents, and one encode</text>
+  <rect x="24" y="100" width="476" height="236" rx="12" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+  <rect x="40" y="116" width="36" height="36" rx="18" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="58" y="140" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">1</text>
+  <text x="88" y="140" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Ingest</text>
+  <text x="44" y="180" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Match source enters here.</text>
+  <text x="44" y="206" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Simulator, detector file,</text>
+  <text x="44" y="232" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">StatsBomb, API-Football,</text>
+  <text x="44" y="258" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">or OpenLigaDB.</text>
+  <line x1="500" y1="210" x2="526" y2="210" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="532" y="100" width="476" height="236" rx="12" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+  <rect x="548" y="116" width="36" height="36" rx="18" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="566" y="140" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">2</text>
+  <text x="596" y="140" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Interpret</text>
+  <text x="552" y="180" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Analytics on the events.</text>
+  <text x="552" y="206" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Score, pressure, tempo,</text>
+  <text x="552" y="232" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">field tilt, and expected</text>
+  <text x="552" y="258" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">goals.</text>
+  <line x1="1008" y1="210" x2="1034" y2="210" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="1040" y="100" width="476" height="236" rx="12" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+  <rect x="1056" y="116" width="36" height="36" rx="18" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="1074" y="140" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">3</text>
+  <text x="1104" y="140" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Explain</text>
+  <text x="1060" y="180" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Narration is written.</text>
+  <text x="1060" y="206" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Fan and Analyst wording.</text>
+  <text x="1060" y="232" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Foundry when a model</text>
+  <text x="1060" y="258" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">is set, else a template.</text>
+  <line x1="1516" y1="210" x2="1542" y2="210" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="1548" y="100" width="476" height="236" rx="12" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+  <rect x="1564" y="116" width="36" height="36" rx="18" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="1582" y="140" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">4</text>
+  <text x="1612" y="140" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Render</text>
+  <text x="1568" y="180" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">The picture is composed.</text>
+  <text x="1568" y="206" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Overlay graphics, banners,</text>
+  <text x="1568" y="232" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">pitch, and the scene</text>
+  <text x="1568" y="258" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">widgets.</text>
+  <line x1="2024" y1="210" x2="2050" y2="210" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="2056" y="100" width="476" height="236" rx="12" fill="#E7F5EC" stroke="#0E7A3D" stroke-width="2"/>
+  <rect x="2072" y="116" width="36" height="36" rx="18" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="2090" y="140" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="700" fill="#FFFFFF">5</text>
+  <text x="2120" y="140" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Personalize / Gateway</text>
+  <text x="2076" y="180" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">The browser's view.</text>
+  <text x="2076" y="206" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Mode, language, and</text>
+  <text x="2076" y="232" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">favourite. SSE and</text>
+  <text x="2076" y="258" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">WebSocket.</text>
+  <rect x="24" y="356" width="2512" height="64" rx="10" fill="#5C2D91" stroke="none" stroke-width="0"/>
+  <text x="1272" y="396" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">Seven match agents publish onto this same stream</text>
+  <rect x="24" y="440" width="816" height="300" rx="12" fill="#E8F3FC" stroke="#0B3A67" stroke-width="2"/>
+  <text x="44" y="476" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#0B3A67">Match Reading</text>
+  <rect x="40" y="496" width="784" height="68" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="56" y="528" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Event Interpreter</text>
+  <text x="56" y="556" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Each detection becomes a structured event.</text>
+  <rect x="40" y="576" width="784" height="68" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="56" y="608" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Tactical Analyst</text>
+  <text x="56" y="636" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Once a minute: pressure, tempo, and patterns.</text>
+  <rect x="40" y="656" width="784" height="68" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="56" y="688" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Player Tracking Agent</text>
+  <text x="56" y="716" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Touches, shots, expected goals, and heat maps.</text>
+  <line x1="432" y1="440" x2="432" y2="420" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="864" y="440" width="816" height="300" rx="12" fill="#E7F5EC" stroke="#0E7A3D" stroke-width="2"/>
+  <text x="884" y="476" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#0E7A3D">Forecast</text>
+  <rect x="880" y="496" width="784" height="108" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="896" y="528" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Prediction Agent</text>
+  <text x="896" y="556" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Win, draw, loss, and the next chance to score.</text>
+  <rect x="880" y="616" width="784" height="108" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="896" y="648" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Explainability Agent</text>
+  <text x="896" y="676" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Why this matters, in Fan and Analyst wording.</text>
+  <line x1="1272" y1="440" x2="1272" y2="420" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="1704" y="440" width="816" height="300" rx="12" fill="#FFF1E5" stroke="#A74109" stroke-width="2"/>
+  <text x="1724" y="476" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#A74109">Story</text>
+  <rect x="1720" y="496" width="784" height="108" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="1736" y="528" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Visualization Agent</text>
+  <text x="1736" y="556" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Ball flight, players, danger, and pass lanes.</text>
+  <rect x="1720" y="616" width="784" height="108" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="1736" y="648" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Highlights Agent</text>
+  <text x="1736" y="676" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Ranks moments and finds the hidden events.</text>
+  <line x1="2112" y1="440" x2="2112" y2="420" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="24" y="760" width="2512" height="628" rx="12" fill="#0B2540" stroke="#0B2540" stroke-width="1.5"/>
+  <text x="48" y="802" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="24" font-weight="700" fill="#FFFFFF">ffmpeg copies one encode</text>
+  <text x="48" y="834" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">Render's studio output is captured. ffmpeg does not run once per platform.</text>
+  <rect x="48" y="864" width="520" height="220" rx="12" fill="#12304D" stroke="#2E5A82" stroke-width="1.5"/>
+  <text x="68" y="904" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">Hidden Chromium</text>
+  <text x="68" y="944" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">Opens /studio?output.</text>
+  <text x="68" y="972" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">1920 by 1080, no controls.</text>
+  <text x="68" y="1000" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">Edge when it is present.</text>
+  <line x1="568" y1="974" x2="620" y2="974" stroke="#FFFFFF" stroke-width="2.5" marker-end="url(#arrw)"/>
+  <rect x="628" y="864" width="520" height="220" rx="12" fill="#12304D" stroke="#2E5A82" stroke-width="1.5"/>
+  <text x="648" y="904" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">ffmpeg</text>
+  <text x="648" y="944" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">Encodes that picture once.</text>
+  <text x="648" y="972" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">Copies the same bitstream.</text>
+  <text x="648" y="1000" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">Stream keys stay in .data/.</text>
+  <line x1="1148" y1="974" x2="1200" y2="974" stroke="#FFFFFF" stroke-width="2.5" marker-end="url(#arrw)"/>
+  <rect x="1220" y="864" width="616" height="104" rx="12" fill="#12304D" stroke="#2E5A82" stroke-width="1.5"/>
+  <text x="1244" y="910" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">YouTube</text>
+  <text x="1244" y="942" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#D6E4F0">Copy of the one encode</text>
+  <rect x="1860" y="864" width="616" height="104" rx="12" fill="#12304D" stroke="#2E5A82" stroke-width="1.5"/>
+  <text x="1884" y="910" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">X</text>
+  <text x="1884" y="942" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#D6E4F0">Copy of the one encode</text>
+  <rect x="1220" y="984" width="616" height="104" rx="12" fill="#12304D" stroke="#2E5A82" stroke-width="1.5"/>
+  <text x="1244" y="1030" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Facebook</text>
+  <text x="1244" y="1062" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#D6E4F0">Copy of the one encode</text>
+  <rect x="1860" y="984" width="616" height="104" rx="12" fill="#12304D" stroke="#2E5A82" stroke-width="1.5"/>
+  <text x="1884" y="1030" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="28" font-weight="700" fill="#FFFFFF">Twitch</text>
+  <text x="1884" y="1062" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#D6E4F0">Copy of the one encode</text>
+  <text x="48" y="1128" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#FFFFFF">Personalize and the gateway still feed the browser on SSE and WebSocket while the encode is copied out.</text>
+  <text x="48" y="1164" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">Auto live captures /live?output with the same Chromium and the same ffmpeg copy.</text>
+  <text x="48" y="1200" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#D6E4F0">The seven agents do not each open a stream. They publish onto this same stream.</text>
+  <text x="48" y="1268" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">Ingest, Interpret, Explain, Render, then Personalize / Gateway. That is the operational path.</text>
+  <rect x="0" y="1406" width="2560" height="34" rx="0" fill="#0B3A67" stroke="none" stroke-width="0"/>
+  <text x="24" y="1428" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#E5F0FA">One match pipeline. One hidden browser. One ffmpeg encode copied to YouTube, X, Facebook, and Twitch.</text>
+  <text x="2532" y="1428" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#E5F0FA">Kickstream submission</text>
+</svg>
+</body>
+</html>

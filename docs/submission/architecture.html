@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kickstream technical architecture</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #F4F7FB; width: 2560px; height: 1440px; overflow: hidden; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#0078D4"/>
+    </marker>
+    <marker id="arrw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#FFFFFF"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#0E7A3D"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="2560" height="1440" rx="0" fill="#F4F7FB" stroke="none" stroke-width="0"/>
+  <rect x="0" y="0" width="2560" height="78" rx="0" fill="#0B3A67" stroke="none" stroke-width="0"/>
+  <rect x="24" y="18" width="22" height="22" rx="4" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <rect x="24" y="46" width="22" height="8" rx="2" fill="#50E6FF" stroke="none" stroke-width="0"/>
+  <text x="56" y="38" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">Kickstream</text>
+  <text x="56" y="62" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#C5DDF5">Football live broadcast</text>
+  <text x="2532" y="38" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="30" font-weight="700" fill="#FFFFFF">Technical architecture</text>
+  <text x="2532" y="62" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#D6E6F5">What this repository ships today</text>
+  <text x="24" y="108" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#0B3A67">Match source</text>
+  <rect x="24" y="118" width="492" height="86" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="40" y="148" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Simulator</text>
+  <text x="40" y="176" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Synthetic match. Ninety minutes in about three minutes.</text>
+  <rect x="530" y="118" width="492" height="86" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="546" y="148" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Detector file</text>
+  <text x="546" y="176" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">JSON Lines events. Set KICKSTREAM_DETECTOR_FILE.</text>
+  <rect x="1036" y="118" width="492" height="86" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="1052" y="148" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">StatsBomb</text>
+  <text x="1052" y="176" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Past-match replay. Non-commercial, with attribution.</text>
+  <rect x="1542" y="118" width="492" height="86" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="1558" y="148" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">API-Football</text>
+  <text x="1558" y="176" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Live fixtures. Optional key. Off on a deploy.</text>
+  <rect x="2048" y="118" width="492" height="86" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="2064" y="148" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">OpenLigaDB</text>
+  <text x="2064" y="176" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Live scores for listed leagues. Off on Azure.</text>
+  <line x1="670" y1="204" x2="670" y2="236" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <text x="684" y="226" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="650" fill="#0B3A67">into Ingest</text>
+  <rect x="24" y="248" width="500" height="360" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="40" y="278" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Vite, React, and Fluent UI</text>
+  <text x="40" y="310" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">The web app in apps/web. Fluent UI v9.</text>
+  <text x="40" y="336" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">On Azure the pipeline serves the built app.</text>
+  <text x="40" y="362" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Locally Vite listens on port 5173.</text>
+  <rect x="40" y="400" width="144" height="32" rx="16" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="112" y="422" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="650" fill="#0B3A67">Home</text>
+  <rect x="196" y="400" width="144" height="32" rx="16" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="268" y="422" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="650" fill="#0B3A67">Studio</text>
+  <rect x="352" y="400" width="144" height="32" rx="16" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="424" y="422" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="650" fill="#0B3A67">Match</text>
+  <rect x="40" y="444" width="144" height="32" rx="16" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="112" y="466" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="650" fill="#0B3A67">Live</text>
+  <rect x="196" y="444" width="144" height="32" rx="16" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="268" y="466" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="650" fill="#0B3A67">Dashboard</text>
+  <rect x="352" y="444" width="144" height="32" rx="16" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="424" y="466" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="650" fill="#0B3A67">Guest</text>
+  <text x="40" y="520" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Studio output is /studio?output at 1920 by 1080.</text>
+  <text x="40" y="548" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Auto live output is /live?output, captured the same way.</text>
+  <text x="40" y="580" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Python FastAPI on port 8000 is the API the app calls.</text>
+  <rect x="24" y="624" width="500" height="168" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/entra-id.svg" x="40" y="644" width="40" height="40"></image>
+  <text x="92" y="670" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Microsoft Entra ID</text>
+  <text x="40" y="712" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Signs the studio in. Audience AzureADMyOrg.</text>
+  <text x="40" y="738" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Guests stay open. /live and /match can be public.</text>
+  <rect x="24" y="808" width="500" height="344" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="40" y="842" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Browser over SSE and WebSocket</text>
+  <text x="40" y="880" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">The gateway fans the match out.</text>
+  <text x="40" y="908" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Personalize filters mode, language, and favourite.</text>
+  <text x="40" y="936" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">A late joiner gets the newest pitch scene</text>
+  <text x="40" y="964" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">and the newest player report.</text>
+  <text x="40" y="992" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">WebSockets are accepted only from the host</text>
+  <text x="40" y="1020" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">the pipeline was reached at.</text>
+  <rect x="540" y="248" width="1188" height="904" rx="12" fill="#E8F3FC" stroke="#0078D4" stroke-width="2"/>
+  <image href="icons/container-apps-environments.svg" x="560" y="264" width="36" height="36"></image>
+  <text x="608" y="288" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#0B3A67">Azure Container Apps environment</text>
+  <text x="608" y="314" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#0F548C">One environment. Logs go to Log Analytics.</text>
+  <rect x="560" y="336" width="1148" height="796" rx="12" fill="#FFFFFF" stroke="#0078D4" stroke-width="2"/>
+  <image href="icons/container-apps.svg" x="580" y="352" width="40" height="40"></image>
+  <text x="632" y="376" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Azure Container Apps · one replica</text>
+  <text x="632" y="404" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Python 3.13 · FastAPI · port 8000 · 2 vCPU · 4 GiB · min and max replicas 1</text>
+  <rect x="580" y="428" width="200" height="132" rx="12" fill="#F4F8FC" stroke="#0078D4" stroke-width="1.5"/>
+  <rect x="592" y="442" width="28" height="28" rx="14" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="606" y="462" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">1</text>
+  <text x="628" y="462" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Ingest</text>
+  <text x="596" y="502" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Events arrive</text>
+  <text x="596" y="528" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#0F548C">Then Interpret</text>
+  <line x1="780" y1="494" x2="796" y2="494" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="802" y="428" width="200" height="132" rx="12" fill="#F4F8FC" stroke="#0078D4" stroke-width="1.5"/>
+  <rect x="814" y="442" width="28" height="28" rx="14" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="828" y="462" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">2</text>
+  <text x="850" y="462" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Interpret</text>
+  <text x="818" y="502" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Stats, pressure</text>
+  <text x="818" y="528" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#0F548C">Then Explain</text>
+  <line x1="1002" y1="494" x2="1018" y2="494" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="1024" y="428" width="200" height="132" rx="12" fill="#F4F8FC" stroke="#0078D4" stroke-width="1.5"/>
+  <rect x="1036" y="442" width="28" height="28" rx="14" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="1050" y="462" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">3</text>
+  <text x="1072" y="462" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Explain</text>
+  <text x="1040" y="502" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Fan and Analyst</text>
+  <text x="1040" y="528" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#0F548C">Then Render</text>
+  <line x1="1224" y1="494" x2="1240" y2="494" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="1246" y="428" width="200" height="132" rx="12" fill="#F4F8FC" stroke="#0078D4" stroke-width="1.5"/>
+  <rect x="1258" y="442" width="28" height="28" rx="14" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="1272" y="462" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">4</text>
+  <text x="1294" y="462" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Render</text>
+  <text x="1262" y="502" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Overlay, scenes</text>
+  <text x="1262" y="528" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#0F548C">Then Gateway</text>
+  <line x1="1446" y1="494" x2="1462" y2="494" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <rect x="1468" y="428" width="200" height="132" rx="12" fill="#F4F8FC" stroke="#0078D4" stroke-width="1.5"/>
+  <rect x="1480" y="442" width="28" height="28" rx="14" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="1494" y="462" text-anchor="middle" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">5</text>
+  <text x="1516" y="462" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Gateway</text>
+  <text x="1484" y="502" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Personalize</text>
+  <text x="1484" y="528" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#0F548C">SSE, WebSocket</text>
+  <rect x="580" y="576" width="1108" height="150" rx="12" fill="#F8F2FC" stroke="#5C2D91" stroke-width="1.5"/>
+  <text x="596" y="606" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#5C2D91">Seven match agents publish onto this stream</text>
+  <text x="596" y="638" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Match Reading: Event Interpreter, Tactical Analyst, Player Tracking Agent.</text>
+  <text x="596" y="662" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Forecast: Prediction Agent, Explainability Agent. Story: Visualization Agent, Highlights Agent.</text>
+  <text x="596" y="700" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Findings join the same stream the gateway sends to the browser.</text>
+  <rect x="580" y="742" width="534" height="250" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="596" y="774" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Hidden Chromium</text>
+  <text x="596" y="810" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Opens the studio output.</text>
+  <text x="596" y="836" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Address /studio?output.</text>
+  <text x="596" y="862" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Edge is used when it is present.</text>
+  <text x="596" y="888" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Auto live uses /live?output.</text>
+  <rect x="1134" y="742" width="554" height="250" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="1150" y="774" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">ffmpeg</text>
+  <text x="1150" y="810" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Encodes that picture once.</text>
+  <text x="1150" y="836" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Copies the same stream out.</text>
+  <text x="1150" y="862" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">One encode. Four destinations.</text>
+  <text x="1150" y="888" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Sound is the guests' call.</text>
+  <line x1="1114" y1="860" x2="1130" y2="860" stroke="#0078D4" stroke-width="2.5" marker-end="url(#arr)"/>
+  <text x="596" y="968" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">The hidden browser has no speakers, so only the Azure voice is carried.</text>
+  <rect x="1744" y="248" width="792" height="104" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/container-registry.svg" x="1760" y="264" width="36" height="36"></image>
+  <text x="1808" y="286" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Container Registry</text>
+  <text x="1808" y="318" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Image kickstream, tag set by the deploy script. The app pulls it to start.</text>
+  <rect x="1744" y="361" width="792" height="104" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/azure-files.svg" x="1760" y="377" width="36" height="36"></image>
+  <text x="1808" y="399" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Azure Files</text>
+  <text x="1808" y="431" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Files share data, mounted at /data. Broadcasts, studio, uploads, keys, and reels.</text>
+  <rect x="1744" y="474" width="792" height="104" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/cosmos-db.svg" x="1760" y="490" width="36" height="36"></image>
+  <text x="1808" y="512" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Cosmos DB</text>
+  <text x="1808" y="544" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Database kickstream. Container match_log. Partition /match_id. TTL 90 days.</text>
+  <rect x="1744" y="587" width="792" height="104" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/communication-services.svg" x="1760" y="603" width="36" height="36"></image>
+  <text x="1808" y="625" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Communication Services</text>
+  <text x="1808" y="657" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Cameras and voices. The host, guests, and the program view join rooms here.</text>
+  <rect x="1744" y="700" width="792" height="104" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/speech.svg" x="1760" y="716" width="36" height="36"></image>
+  <text x="1808" y="738" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Speech</text>
+  <text x="1808" y="770" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Auto live's commentator. Kind SpeechServices. Default SKU S0.</text>
+  <rect x="1744" y="813" width="792" height="104" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/log-analytics.svg" x="1760" y="829" width="36" height="36"></image>
+  <text x="1808" y="851" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Log Analytics</text>
+  <text x="1808" y="883" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Workspace for the Container Apps environment. Retention 30 days.</text>
+  <rect x="1744" y="926" width="792" height="104" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/managed-identities.svg" x="1760" y="942" width="36" height="36"></image>
+  <text x="1808" y="964" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Managed identity</text>
+  <text x="1808" y="996" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">System-assigned. Cosmos data role, and Azure AI User on Foundry when set.</text>
+  <rect x="1744" y="1039" width="792" height="104" rx="12" fill="#FBF7FE" stroke="#5C2D91" stroke-width="2" stroke-dasharray="7 5"/>
+  <image href="icons/foundry-project.svg" x="1760" y="1055" width="36" height="36"></image>
+  <text x="1808" y="1077" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#5C2D91">Microsoft Foundry</text>
+  <text x="1808" y="1109" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">An existing project the app signs into. Terraform does not create it.</text>
+  <rect x="24" y="1168" width="2512" height="224" rx="12" fill="#0B2540" stroke="none" stroke-width="0"/>
+  <text x="44" y="1202" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">ffmpeg copies one encode to four destinations</text>
+  <text x="44" y="1230" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#D6E4F0">The hidden Chromium picture is encoded once. Each platform receives a copy of that stream.</text>
+  <rect x="44" y="1252" width="596" height="112" rx="12" fill="#12304D" stroke="none" stroke-width="0"/>
+  <rect x="44" y="1252" width="12" height="112" rx="4" fill="#C4302B" stroke="none" stroke-width="0"/>
+  <text x="80" y="1316" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="32" font-weight="700" fill="#FFFFFF">YouTube</text>
+  <rect x="664" y="1252" width="596" height="112" rx="12" fill="#12304D" stroke="none" stroke-width="0"/>
+  <rect x="664" y="1252" width="12" height="112" rx="4" fill="#111111" stroke="none" stroke-width="0"/>
+  <text x="700" y="1316" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="32" font-weight="700" fill="#FFFFFF">X</text>
+  <rect x="1284" y="1252" width="596" height="112" rx="12" fill="#12304D" stroke="none" stroke-width="0"/>
+  <rect x="1284" y="1252" width="12" height="112" rx="4" fill="#1877F2" stroke="none" stroke-width="0"/>
+  <text x="1320" y="1316" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="32" font-weight="700" fill="#FFFFFF">Facebook</text>
+  <rect x="1904" y="1252" width="596" height="112" rx="12" fill="#12304D" stroke="none" stroke-width="0"/>
+  <rect x="1904" y="1252" width="12" height="112" rx="4" fill="#9146FF" stroke="none" stroke-width="0"/>
+  <text x="1940" y="1316" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="32" font-weight="700" fill="#FFFFFF">Twitch</text>
+  <rect x="0" y="1406" width="2560" height="34" rx="0" fill="#0B3A67" stroke="none" stroke-width="0"/>
+  <text x="24" y="1428" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#E5F0FA">One Container App replica. Foundry is an existing project. Terraform does not create it.</text>
+  <text x="2532" y="1428" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#E5F0FA">Kickstream submission</text>
+</svg>
+</body>
+</html>

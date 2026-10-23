@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kickstream deployment versus local state</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #F4F7FB; width: 2560px; height: 1440px; overflow: hidden; }
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#0078D4"/>
+    </marker>
+    <marker id="arrw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#FFFFFF"/>
+    </marker>
+    <marker id="arrg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#0E7A3D"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="2560" height="1440" rx="0" fill="#F4F7FB" stroke="none" stroke-width="0"/>
+  <rect x="0" y="0" width="2560" height="78" rx="0" fill="#0B3A67" stroke="none" stroke-width="0"/>
+  <rect x="24" y="18" width="22" height="22" rx="4" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <rect x="24" y="46" width="22" height="8" rx="2" fill="#50E6FF" stroke="none" stroke-width="0"/>
+  <text x="56" y="38" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">Kickstream</text>
+  <text x="56" y="62" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#C5DDF5">Football live broadcast</text>
+  <text x="2532" y="38" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="30" font-weight="700" fill="#FFFFFF">Deployment versus local state</text>
+  <text x="2532" y="62" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#D6E6F5">Terraform resources beside this machine</text>
+  <rect x="24" y="96" width="1224" height="56" rx="10" fill="#5C5C5C" stroke="none" stroke-width="0"/>
+  <text x="44" y="132" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="24" font-weight="700" fill="#FFFFFF">Local · this machine</text>
+  <rect x="1268" y="96" width="1268" height="56" rx="10" fill="#0078D4" stroke="none" stroke-width="0"/>
+  <text x="1288" y="132" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="24" font-weight="700" fill="#FFFFFF">Azure · deploy/terraform creates</text>
+  <rect x="24" y="168" width="1224" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="44" y="208" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Process memory</text>
+  <text x="44" y="244" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">The match playing now, the studio session, and the ffmpeg encode live in the one FastAPI process.</text>
+  <rect x="24" y="300" width="1224" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="44" y="340" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">.data/</text>
+  <text x="44" y="376" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Broadcasts, the studio document, uploads, narration cache, agent switches, stream keys, recordings, and reels.</text>
+  <rect x="24" y="432" width="1224" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="44" y="472" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Two processes</text>
+  <text x="44" y="508" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Vite, React, and Fluent UI on port 5173. Python FastAPI on port 8000.</text>
+  <rect x="24" y="564" width="1224" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <text x="44" y="604" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="22" font-weight="700" fill="#242424">Off until you set them</text>
+  <text x="44" y="640" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="18" font-weight="400" fill="#3D3D3D">Cosmos only with an endpoint. Calls only with a connection string. Narration is a template until a model is set.</text>
+  <rect x="1268" y="168" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/resource-groups.svg" x="1282" y="182" width="32" height="32"></image>
+  <text x="1322" y="204" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Resource group</text>
+  <text x="1284" y="238" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Name rg-kickstream.</text>
+  <text x="1284" y="262" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Region centralindia.</text>
+  <rect x="1688" y="168" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/log-analytics.svg" x="1702" y="182" width="32" height="32"></image>
+  <text x="1742" y="204" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Log Analytics</text>
+  <text x="1704" y="238" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Workspace for the app.</text>
+  <text x="1704" y="262" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Retention 30 days.</text>
+  <rect x="2108" y="168" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/container-registry.svg" x="2122" y="182" width="32" height="32"></image>
+  <text x="2162" y="204" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Container Registry</text>
+  <text x="2124" y="238" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Basic registry.</text>
+  <text x="2124" y="262" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Image kickstream.</text>
+  <rect x="1268" y="300" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/storage-account.svg" x="1282" y="314" width="32" height="32"></image>
+  <text x="1322" y="336" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Storage account</text>
+  <text x="1284" y="370" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Standard, LRS.</text>
+  <text x="1284" y="394" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">TLS 1.2. Holds the share.</text>
+  <rect x="1688" y="300" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/azure-files.svg" x="1702" y="314" width="32" height="32"></image>
+  <text x="1742" y="336" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Azure Files</text>
+  <text x="1704" y="370" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Share data.</text>
+  <text x="1704" y="394" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">10 GiB, mounted at /data.</text>
+  <rect x="2108" y="300" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/communication-services.svg" x="2122" y="314" width="32" height="32"></image>
+  <text x="2162" y="336" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Communication Services</text>
+  <text x="2124" y="370" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Cameras and voices.</text>
+  <text x="2124" y="394" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Data location India.</text>
+  <rect x="1268" y="432" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/speech.svg" x="1282" y="446" width="32" height="32"></image>
+  <text x="1322" y="468" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Speech</text>
+  <text x="1284" y="502" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Kind SpeechServices.</text>
+  <text x="1284" y="526" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Default SKU S0.</text>
+  <rect x="1688" y="432" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/cosmos-db.svg" x="1702" y="446" width="32" height="32"></image>
+  <text x="1742" y="468" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Cosmos DB</text>
+  <text x="1704" y="502" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Database kickstream.</text>
+  <text x="1704" y="526" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Container match_log. No keys.</text>
+  <rect x="2108" y="432" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/container-apps-environments.svg" x="2122" y="446" width="32" height="32"></image>
+  <text x="2162" y="468" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Container Apps environment</text>
+  <text x="2124" y="502" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Hosts the one app.</text>
+  <text x="2124" y="526" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Mounts the Files share.</text>
+  <rect x="1268" y="564" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/container-apps.svg" x="1282" y="578" width="32" height="32"></image>
+  <text x="1322" y="600" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Container App</text>
+  <text x="1284" y="634" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">One replica.</text>
+  <text x="1284" y="658" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">2 vCPU, 4 GiB, port 8000.</text>
+  <rect x="1688" y="564" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/app-registrations.svg" x="1702" y="578" width="32" height="32"></image>
+  <text x="1742" y="600" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Entra app registration</text>
+  <text x="1704" y="634" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Kickstream studio.</text>
+  <text x="1704" y="658" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Audience AzureADMyOrg.</text>
+  <rect x="2108" y="564" width="404" height="120" rx="12" fill="#FFFFFF" stroke="#D0D7E2" stroke-width="1.5"/>
+  <image href="icons/entra-id.svg" x="2122" y="578" width="32" height="32"></image>
+  <text x="2162" y="600" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="700" fill="#242424">Microsoft Entra ID</text>
+  <text x="2124" y="634" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">Studio sign-in.</text>
+  <text x="2124" y="658" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#3D3D3D">In front of the Container App.</text>
+  <rect x="24" y="704" width="2512" height="96" rx="0" fill="#0B3A67" stroke="none" stroke-width="0"/>
+  <text x="44" y="746" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">State</text>
+  <text x="520" y="746" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">Local</text>
+  <text x="1480" y="746" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#FFFFFF">Azure deploy</text>
+  <rect x="24" y="800" width="2512" height="96" rx="0" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="44" y="842" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Match, studio, encode</text>
+  <text x="520" y="842" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Process memory</text>
+  <text x="1480" y="842" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Process memory, one replica</text>
+  <rect x="24" y="896" width="2512" height="96" rx="0" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+  <text x="44" y="938" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Broadcasts and keys</text>
+  <text x="520" y="938" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">.data/</text>
+  <text x="1480" y="938" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Azure Files share data at /data</text>
+  <rect x="24" y="992" width="2512" height="96" rx="0" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="44" y="1034" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Match log</text>
+  <text x="520" y="1034" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Memory, unless Cosmos is set</text>
+  <text x="1480" y="1034" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Cosmos DB kickstream / match_log</text>
+  <rect x="24" y="1088" width="2512" height="96" rx="0" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+  <text x="44" y="1130" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Model</text>
+  <text x="520" y="1130" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Foundry, another endpoint, or a template</text>
+  <text x="1480" y="1130" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Same. Terraform does not create Foundry</text>
+  <image href="icons/foundry-project.svg" x="2460" y="1116" width="36" height="36"></image>
+  <rect x="24" y="1184" width="2512" height="96" rx="0" fill="#E8F3FC" stroke="none" stroke-width="0"/>
+  <text x="44" y="1226" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Sign-in</text>
+  <text x="520" y="1226" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">None. Keep the pipeline on your machine</text>
+  <text x="1480" y="1226" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Entra app registration, AzureADMyOrg</text>
+  <rect x="24" y="1280" width="2512" height="96" rx="0" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+  <text x="44" y="1322" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="700" fill="#242424">Calls and voice</text>
+  <text x="520" y="1322" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Only when you set the connection and key</text>
+  <text x="1480" y="1322" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="20" font-weight="400" fill="#242424">Communication Services and Speech</text>
+  <rect x="0" y="1406" width="2560" height="34" rx="0" fill="#0B3A67" stroke="none" stroke-width="0"/>
+  <text x="24" y="1428" text-anchor="start" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#E5F0FA">deploy/terraform creates the Azure column. Microsoft Foundry is an existing project the app signs into.</text>
+  <text x="2532" y="1428" text-anchor="end" font-family="Segoe UI, Segoe UI Variable, sans-serif" font-size="16" font-weight="400" fill="#E5F0FA">Kickstream submission</text>
+</svg>
+</body>
+</html>
