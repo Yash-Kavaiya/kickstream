@@ -1,0 +1,55 @@
+// Eraser type: Cloud architecture diagram
+// Paste into app.eraser.io → Diagram as Code → Cloud architecture
+
+direction right
+colorMode pastel
+styleMode shadow
+typeface clean
+wrap off
+
+Local [icon: monitor, color: gray, label: "Local · this machine"] {
+  Browser [icon: monitor, color: blue, label: "Browser"]
+  Vite [icon: react, color: blue, label: "Vite, React, Fluent UI\nHTTP :5173"]
+  API [icon: fastapi, color: purple, label: "FastAPI :8000\none process"]
+  Memory [color: orange, label: "Process memory"]
+  DataDir [color: orange, label: ".data/"]
+}
+
+Azure [icon: azure-resource-groups, color: blue, label: "Resource group · deploy/terraform"] {
+  LogAnalytics [icon: azure-log-analytics-workspaces, color: teal, label: "Log Analytics\nDiagnostics"]
+  Registry [icon: azure-container-registries, color: teal, label: "Container Registry\nOCI pull"]
+  Storage [icon: azure-storage-accounts, color: teal, label: "Storage account\nStandard LRS"]
+  Files [icon: azure-storage-azure-files, color: teal, label: "Azure Files\nShare data · SMB"]
+  Env [icon: azure-container-apps-environments, color: blue, label: "Container Apps environment"] {
+    App [icon: docker, color: blue, label: "Container App\nOne replica\nHTTPS ingress · FastAPI :8000"]
+  }
+  Speech [icon: azure-speech-services, color: blue, label: "Speech\nHTTPS SSML"]
+  Cosmos [icon: azure-cosmos-db, color: blue, label: "Cosmos DB\nkickstream / match_log\npartition /match_id"]
+  Calling [icon: azure-communication-services, color: blue, label: "Communication Services\nVoIP token"]
+  AppReg [icon: azure-app-registrations, color: blue, label: "Entra app registration\nOIDC"]
+  Entra [icon: azure-active-directory, color: blue, label: "Entra ID\nOIDC"]
+  Identity [icon: azure-entra-managed-identities, color: blue, label: "Managed identity"]
+}
+
+Foundry [icon: azure-ai-studio, color: purple, label: "Microsoft Foundry\nTerraform does not create Foundry"]
+
+Browser > Vite: HTTP [color: gray]
+Vite > API: HTTP /api [color: gray]
+API > Memory [color: orange]
+API > DataDir [color: orange]
+Registry > App: OCI pull [color: teal]
+Files > App: Share data mounted at /data [color: teal]
+LogAnalytics - Env: Diagnostics [color: teal]
+App > Speech: HTTPS [color: blue]
+App > Cosmos: HTTPS [color: blue]
+App > Calling: HTTPS [color: blue]
+AppReg > App: OIDC [color: blue]
+Entra > AppReg [color: blue]
+Identity > App [color: blue]
+App --> Foundry: existing project the app signs into [color: purple]
+
+legend [position: bottom] {
+  [color: orange, label: "Process memory and .data/ stay on this machine"]
+  [color: blue, label: "Terraform creates the resource group and one replica"]
+  [connection: -->, color: purple, label: "Terraform does not create Foundry"]
+}

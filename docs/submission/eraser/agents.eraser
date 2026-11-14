@@ -1,0 +1,49 @@
+// Eraser type: Flow chart
+// Paste into app.eraser.io → Diagram as Code → Flow chart
+
+direction down
+colorMode pastel
+styleMode shadow
+typeface clean
+wrap off
+
+MatchReading [icon: users, color: blue, label: "Match Reading"] {
+  EventInterpreter [color: blue, label: "Event Interpreter"]
+  TacticalAgent [color: blue, label: "Tactical Analyst"]
+  PlayerTracking [color: blue, label: "Player Tracking Agent"]
+}
+
+Forecast [color: green, label: "Forecast"] {
+  Prediction [color: green, label: "Prediction Agent"]
+  Explainability [color: green, label: "Explainability Agent\nEnglish, at most 20\nonly match agent that writes prose"]
+}
+
+Story [color: orange, label: "Story"] {
+  Visualization [color: orange, label: "Visualization Agent"]
+  Highlights [color: orange, label: "Highlights Agent"]
+}
+
+Stream [color: purple, label: "One in-process stream\nfindings join the gateway"]
+
+Writers [icon: azure-ai-studio, color: purple, label: "Four narration writers\nMicrosoft Agent Framework"] {
+  Commentator [color: purple, label: "Commentator\neach key moment"]
+  TacticalWriter [color: purple, label: "Tactical Analyst\nnarration writer"]
+  Recap [color: purple, label: "Recap Writer\nhalf-time and full-time"]
+  Localizer [color: purple, label: "Localizer\nSpanish and Hindi"]
+}
+
+NoModel [shape: diamond, color: orange, label: "No model is set\nTemplate fallback\nMarked Scripted"]
+Model [icon: azure-ai-studio, color: blue, label: "A model is set\nFoundry over HTTPS\nEntra ID · Azure AI User"]
+
+MatchReading > Stream [color: blue]
+Forecast > Stream [color: green]
+Story > Stream [color: orange]
+Stream > Writers [color: purple]
+Writers > NoModel: no model [color: orange]
+Writers > Model: model set [color: blue]
+
+legend [position: bottom] {
+  [color: green, label: "Explainability is the only match agent that writes prose"]
+  [color: purple, label: "Tactical Analyst appears twice: match agent and narration writer"]
+  [color: orange, label: "A failed call falls back to the template and is marked Scripted"]
+}

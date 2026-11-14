@@ -1,0 +1,24 @@
+// Eraser type: Sequence diagram
+// Paste into app.eraser.io → Diagram as Code → Sequence
+
+colorMode pastel
+styleMode shadow
+typeface clean
+autoNumber on
+
+Match source [icon: database, color: orange] > Ingest [icon: fastapi, color: blue]: events in
+activate Ingest
+Ingest > Interpret [icon: fastapi, color: blue]: normalized
+activate Interpret
+Interpret > Explain [icon: azure-ai-studio, color: purple]: match agents and Foundry narration
+activate Explain
+Explain > Render [icon: fastapi, color: blue]: narration
+deactivate Explain
+activate Render
+Render > Gateway [icon: fastapi, color: green]: overlay
+deactivate Render
+activate Gateway
+Gateway > Browser [icon: monitor, color: green]: SSE / WebSocket
+deactivate Gateway
+deactivate Interpret
+deactivate Ingest

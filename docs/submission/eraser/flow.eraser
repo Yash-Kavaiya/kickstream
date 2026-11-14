@@ -1,0 +1,45 @@
+// Eraser type: Flow chart
+// Paste into app.eraser.io → Diagram as Code → Flow chart
+
+direction down
+colorMode pastel
+styleMode shadow
+typeface clean
+wrap off
+
+Ingest [icon: fastapi, color: blue, shape: rectangle, label: "1  Ingest\nevents"]
+Interpret [icon: fastapi, color: blue, shape: rectangle, label: "2  Interpret\nstats"]
+Explain [icon: azure-ai-studio, color: purple, shape: rectangle, label: "3  Explain\nwords"]
+Render [icon: fastapi, color: blue, shape: rectangle, label: "4  Render\npicture"]
+Gateway [icon: fastapi, color: green, shape: rectangle, label: "5  Gateway\nSSE + WebSocket"]
+
+Agents [color: purple, label: "Seven match agents publish onto this same stream"] {
+  EventInterpreter [color: blue, label: "Event Interpreter"]
+  TacticalAgent [color: blue, label: "Tactical Analyst"]
+  PlayerTracking [color: blue, label: "Player Tracking Agent"]
+  Prediction [color: green, label: "Prediction Agent"]
+  Explainability [color: green, label: "Explainability Agent"]
+  Visualization [color: orange, label: "Visualization Agent"]
+  Highlights [color: orange, label: "Highlights Agent"]
+}
+
+GoingLive [icon: ffmpeg, color: teal, label: "Going live · one encode"] {
+  Chromium [icon: chrome, color: teal, label: "Hidden Chromium\nHTTP page"]
+  Ffmpeg [icon: ffmpeg, color: teal, label: "ffmpeg\nMPEG-TS in · FLV out"]
+  YouTube [icon: youtube, color: green, label: "YouTube\nRTMP"]
+  Xdest [icon: twitter, color: green, label: "X\nRTMP"]
+  Facebook [icon: facebook, color: green, label: "Facebook\nRTMPS"]
+  Twitch [icon: twitch, color: green, label: "Twitch\nRTMP"]
+}
+
+Ingest > Interpret > Explain > Render > Gateway [color: blue]
+Agents > Gateway: same stream [color: purple]
+Gateway > Chromium: HTTP /studio?output [color: teal]
+Chromium > Ffmpeg: DevTools WebSocket · MPEG-TS [color: teal]
+Ffmpeg > YouTube, Xdest, Facebook, Twitch: FLV copy · RTMP / RTMPS [color: green]
+
+legend [position: bottom] {
+  [color: purple, label: "Match agents on one in-process stream"]
+  [color: green, label: "Personalize / Gateway still serves the browser"]
+  [icon: ffmpeg, label: "One encode, no per-platform re-encode"]
+}

@@ -1,0 +1,77 @@
+// Eraser type: Cloud architecture diagram
+// Paste into app.eraser.io → Diagram as Code → Cloud architecture
+
+direction down
+colorMode pastel
+styleMode shadow
+typeface clean
+wrap off
+
+Sources [icon: database, color: orange, label: "Match sources"] {
+  Simulator [color: orange, label: "Simulator\nin-process"]
+  Detector [color: orange, label: "Detector file\nJSON Lines"]
+  StatsBomb [color: orange, label: "StatsBomb\nHTTPS"]
+  APIFootball [color: orange, label: "API-Football\nHTTPS"]
+  OpenLigaDB [color: orange, label: "OpenLigaDB\nHTTPS"]
+}
+
+Experience [icon: react, color: blue, label: "Experience"] {
+  Web [icon: react, color: blue, label: "Vite, React, Fluent UI\nlocal HTTP :5173"]
+  Entra [icon: azure-active-directory, color: blue, label: "Entra ID\nOpenID Connect"]
+  Browser [icon: monitor, color: green, label: "Browser\nSSE + WebSocket"]
+}
+
+Pipeline [icon: azure-container-apps-environments, color: purple, label: "Container Apps · one replica\nFastAPI :8000"] {
+  Ingest [icon: fastapi, color: purple, label: "Ingest"]
+  Interpret [icon: fastapi, color: purple, label: "Interpret"]
+  Explain [icon: azure-ai-studio, color: purple, label: "Explain"]
+  Render [icon: fastapi, color: purple, label: "Render"]
+  Gateway [icon: fastapi, color: green, label: "Gateway"]
+  Agents [color: purple, label: "Seven match agents\npublish onto this stream"]
+  Chromium [icon: chrome, color: teal, label: "Hidden Chromium\nHTTP /studio?output"]
+  Capture [icon: chrome, color: teal, label: "Capture\nDevTools WebSocket"]
+  Ffmpeg [icon: ffmpeg, color: teal, label: "ffmpeg\nFLV · -c copy"]
+}
+
+Destinations [color: green, label: "One encode, copied four ways"] {
+  YouTube [icon: youtube, color: green, label: "YouTube\nRTMP"]
+  Xdest [icon: twitter, color: green, label: "X\nRTMP"]
+  Facebook [icon: facebook, color: green, label: "Facebook\nRTMPS"]
+  Twitch [icon: twitch, color: green, label: "Twitch\nRTMP"]
+}
+
+Platform [color: teal, label: "Platform calls"] {
+  Registry [icon: azure-container-registries, color: teal, label: "Container Registry\nOCI pull"]
+  Files [icon: azure-storage-azure-files, color: teal, label: "Files share data\nSMB, mounted at /data"]
+  Cosmos [icon: azure-cosmos-db, color: teal, label: "Cosmos DB\nkickstream / match_log"]
+  Calling [icon: azure-communication-services, color: teal, label: "Communication Services\nHTTPS · VoIP token"]
+  Speech [icon: azure-speech-services, color: teal, label: "Speech\nHTTPS SSML · MP3"]
+  Logs [icon: azure-log-analytics-workspaces, color: teal, label: "Log Analytics\nDiagnostics"]
+  Identity [icon: azure-entra-managed-identities, color: teal, label: "Managed identity"]
+}
+
+Foundry [icon: azure-ai-studio, color: purple, label: "Microsoft Foundry\nexisting project\nTerraform does not create it"]
+
+Sources > Ingest: into Ingest [color: orange]
+Ingest > Interpret > Explain > Render > Gateway [color: purple]
+Agents > Gateway: same stream [color: purple]
+Entra > Web: OIDC [color: blue]
+Web > Gateway: HTTPS [color: blue]
+Gateway <> Browser: SSE / WebSocket [color: green]
+Chromium > Capture: DevTools WebSocket [color: teal]
+Capture > Ffmpeg: MPEG-TS pipe [color: teal]
+Ffmpeg > YouTube, Xdest, Facebook, Twitch: FLV copy [color: green]
+Registry > Pipeline: OCI pull [color: teal]
+Files > Pipeline: SMB [color: teal]
+Pipeline > Cosmos: HTTPS [color: teal]
+Pipeline > Calling: HTTPS [color: teal]
+Pipeline > Speech: HTTPS [color: teal]
+Pipeline > Logs: Diagnostics [color: teal]
+Identity > Pipeline [color: teal]
+Pipeline --> Foundry: signs in, not created here [color: purple]
+
+legend [position: bottom] {
+  [connection: -->, color: purple, label: "Existing project. Terraform does not create it"]
+  [icon: azure-container-apps-environments, label: "One replica"]
+  [color: green, label: "One encode copied to four destinations"]
+}
